@@ -1,8 +1,8 @@
 const SAVE_KEY = 'brave_hero_save_data';
 
 export class SaveManager {
-    // 儲存玩家資料
-    static save(player) {
+    // 儲存玩家資料。可透過第二個參數傳入額外的遊戲狀態（例如 wave）
+    static save(player, meta = {}) {
         if (!player) return;
         console.log("正在儲存遊戲進度...");
         const saveData = {
@@ -18,7 +18,9 @@ export class SaveManager {
             speed: player.speed,
             gold: player.gold,
             inventory: player.inventory,
-            equipment: player.equipment
+            equipment: player.equipment,
+            // 將任何額外 meta 加入儲存物件（例如 wave）
+            ...meta
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
     }

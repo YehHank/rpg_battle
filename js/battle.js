@@ -1,4 +1,4 @@
-import { MONSTER_TYPES } from './data.js';
+import { MONSTER_TYPES, ITEMS } from './data.js';
 
 export class BattleEngine {
     constructor(player, ui) {
@@ -16,11 +16,30 @@ export class BattleEngine {
         this.currentWave = wave;
         this.isBattleOver = false;
         this.turnCount = 0;
+        this.isPlayerTurn = true;
         this.gameInstance = gameInstance;
         this._isDefending = false;
 
+        // 清除戰鬥結果視窗
+        const resultContainer = document.getElementById('battle-result-container');
+        if (resultContainer) {
+            resultContainer.innerHTML = '';
+        }
+
+        // 重置戰鬥按鈕狀態
+        this.ui.setBattleButtonsEnabled(true);
+
+        // 清除戰鬥紀錄（可選，如果想要保留歷史紀錄可移除這行）
+        const battleLog = document.getElementById('battle-log');
+        if (battleLog) {
+            battleLog.innerHTML = '';
+        }
+
+        // 恢復玩家滿 HP
+        this.player.hp = this.player.maxHp;
+
         const monsterData = MONSTER_TYPES[Math.min(wave, MONSTER_TYPES.length - 1)];
-        this.enemy = { ...monsterData }; 
+        this.enemy = { ...monsterData };
         this.enemy.hp = Math.floor(this.enemy.hp * (1 + wave * 0.2));
         this.enemy.maxHp = this.enemy.hp;
         this.enemy.atk = Math.floor(this.enemy.atk * (1 + wave * 0.2));
@@ -29,8 +48,14 @@ export class BattleEngine {
 
         console.log(`第 ${wave + 1} 波開始！敵人是: ${this.enemy.name}`);
         this.ui.showScene('battle');
+
+        // 更新波數顯示
+        const waveIndicator = document.getElementById('wave-indicator');
+        if (waveIndicator) {
+            waveIndicator.textContent = `⚔️ 第 ${wave + 1} 波`;
+        }
+
         this.ui.updateBattleScene(this.player, this.enemy);
-        this.ui.setBattleButtonsEnabled(true);
         this.ui.addLog(`⚔️ 第 ${wave + 1} 波戰鬥開始！`, 'log-system');
 
         // 主迴圈
@@ -77,13 +102,22 @@ export class BattleEngine {
             console.error("處理動作時發生錯誤:", error);
         }
 
-        // 只要玩家做了動作且戰鬥沒結束，就切換回合
-        if (!this.isBattleOver) {
-            this.isPlayerTurn = false;
-            this.ui.setBattleButtonsEnabled(false);
-            // 重要：在這裡呼叫 resolve，讓 while 迴圈繼續往下走進入 enemyTurn
-            if (this.resolvePlayerTurn) this.resolvePlayerTurn();
+        // 玩家做了動作後不論是否造成戰鬥結束，都應解除 startBattle 中的等待。
+        // 這樣當玩家的動作直接擊敗敵人時，waitForPlayer() 不會永遠懸而未決，
+        // handleTraining() 才能在 startBattle 返回後遞增波數。
+        if (this.resolvePlayerTurn) {
+            try {
+                this.resolvePlayerTurn();
+            } catch (e) {
+                console.warn('resolvePlayerTurn 執行時發生例外:', e);
+            }
+            // 清除引用以避免重複呼叫
+            this.resolvePlayerTurn = null;
         }
+
+        // 切換回合標記與按鈕狀態（若戰鬥尚未結束，敵人會在 startBattle 的後續流程執行）
+        this.isPlayerTurn = false;
+        this.ui.setBattleButtonsEnabled(false);
     }
 
     async playerAttack() {
@@ -187,9 +221,37 @@ export class BattleEngine {
             this.player.gold += goldEarned;
             this.player.gainExp(expEarned);
             this.ui.logCombat(`戰鬥結束！獲得 ${goldEarned} 金幣與 ${expEarned} EXP`, 'system');
+
+            // 掉落機制
+            await this.calculateDrops();
+
             this.ui.showBattleResult(true, this.enemy, this.gameInstance);
         } else {
             this.ui.showBattleResult(false, this.enemy, this.gameInstance);
         }
+    }
+
+    async calculateDrops() {
+        // 檢查是否有掉落物
+        if (!this.enemy.drops || this.enemy.drops.length === 0) {
+            return;
+        }
+
+        // 隨機決定掉落哪些物品
+        this.enemy.drops.forEach(itemKey => {
+            if (Math.random() < this.enemy.dropRate) {
+                const item = ITEMS[itemKey];
+                if (item && !this.player.inventory.find(i => i.id === itemKey)) {
+                    // 複製物品物件，避免修改原始資料
+                    const newItem = { ...item };
+                    const added = this.player.addItem(newItem);
+                    if (added) {
+                        this.ui.logCombat(`🎁 掉落物品：${item.icon} ${item.name}！`, 'system');
+                    } else {
+                        this.ui.logCombat(`🎁 掉落物品：${item.icon} ${item.name}，但背包已滿無法拾取。`, 'error');
+                    }
+                }
+            }
+        });
     }
 }

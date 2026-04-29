@@ -25,9 +25,15 @@ export class Player {
         // 裝備與背包初始化
         this.equipment = {
             weapon: null,
-            armor: null
+            armor: null,
+            helm: null,
+            shoes: null,
+            shield: null,
+            accessory: null
         };
         this.inventory = [];
+        // 背包容量（可以調整）
+        this.inventoryLimit = 20;
 
         this._onChanged = null;
     }
@@ -50,19 +56,49 @@ export class Player {
     get totalAtk() {
         let bonus = 0;
         if (this.equipment.weapon) bonus += this.equipment.weapon.atk || 0;
+        if (this.equipment.accessory) bonus += this.equipment.accessory.atk || 0;
         return this.atk + bonus;
     }
 
     get totalDef() {
         let bonus = 0;
         if (this.equipment.armor) bonus += this.equipment.armor.def || 0;
+        if (this.equipment.helm) bonus += this.equipment.helm.def || 0;
+        if (this.equipment.shield) bonus += this.equipment.shield.def || 0;
+        if (this.equipment.accessory) bonus += this.equipment.accessory.def || 0;
         return this.def + bonus;
+    }
+
+    get totalSpeed() {
+        let bonus = 0;
+        if (this.equipment.helm) bonus += this.equipment.helm.speed || 0;
+        if (this.equipment.shoes) bonus += this.equipment.shoes.speed || 0;
+        if (this.equipment.accessory) bonus += this.equipment.accessory.speed || 0;
+        return this.speed + bonus;
+    }
+
+    // --- 新增：加入物品功能 ---
+    addItem(item) {
+        if (!item) return false;
+        if (this.inventory.length >= this.inventoryLimit) {
+            console.warn(`${this.name} 的背包已滿，無法獲得 ${item.name}`);
+            return false;
+        }
+        this.inventory.push(item);
+        console.log(`${this.name} 獲得了 ${item.name}`);
+        this._notifyChange();
+        return true;
     }
 
     // --- 裝備功能 ---
     equipItem(item) {
         if (!item) return false;
-        const slot = item.type === 'weapon' ? 'weapon' : (item.type === 'armor' ? 'armor' : null);
+        const slot = item.type === 'weapon' ? 'weapon' :
+                     item.type === 'armor' ? 'armor' :
+                     item.type === 'helm' ? 'helm' :
+                     item.type === 'shoes' ? 'shoes' :
+                     item.type === 'shield' ? 'shield' :
+                     item.type === 'accessory' ? 'accessory' : null;
         if (!slot) return false;
 
         // 如果該欄位已有物品，先退回背包
@@ -90,6 +126,11 @@ export class Player {
         const item = this.equipment[slot];
         console.log(`${this.name} 脫下了 ${item.name}`);
         
+        // 如果背包已滿，阻止脫下並回報
+        if (this.inventory.length >= this.inventoryLimit) {
+            console.warn(`${this.name} 的背包已滿，無法脫下 ${item.name}`);
+            return false;
+        }
         // 將物品放回背包
         this.inventory.push(item);
         // 清空欄位

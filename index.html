@@ -59,7 +59,7 @@
                 <!-- 中間：主要內容 -->
                 <div class="panel" id="main-content" style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
                     <h3 id="main-welcome-text">歡迎來到冒險世界！</h3>
-                    <button class="btn btn-primary" id="btn-start-adventure-main" style="padding: 20px 40px; font-size: 18px;">⚔️ 開始戰鬥</button>
+                    <button class="btn btn-primary fixed-action" id="btn-start-adventure-main">⚔️ 開始戰鬥</button>
                 </div>
 
                 <!-- 右側：裝備與背包 -->
@@ -80,25 +80,23 @@
         <div id="scene-shop" class="scene">
             <h2 style="margin: 0 0 15px 0;">🛒 冒險者商店</h2>
             
-            <div class="shop-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div class="gold-badge" style="font-size: 1.2em; background: #ffd700; color: #333; padding: 5px 15px; border-radius: 20px; font-weight: bold;">
-                    💰 <span id="shop-gold-amount">0</span>
-                </div>
-                <button class="btn btn-danger" id="btn-back-to-game" style="padding: 5px 15px;">返回主畫面</button>
+            <div class="shop-header">
+                <div class="gold-badge">💰 <span id="shop-gold-amount">0</span></div>
+                <button class="btn btn-danger" id="btn-back-to-game">返回主畫面</button>
             </div>
 
-            <div class="shop-container" style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; height: 70vh;">
+            <div class="shop-container">
                 <!-- 左側：商品清單 -->
-                <div class="shop-column" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; overflow-y: auto;">
-                    <h3 style="margin-top: 0; color: #ffd700; border-bottom: 1px solid #444; padding-bottom: 10px;">精選商品</h3>
-                    <div id="shop-items-container" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="shop-column shop-left">
+                    <h3 class="shop-title">精選商品</h3>
+                    <div id="shop-items-container" class="shop-items-list">
                         <!-- 商品清單由 JS 產生 -->
                     </div>
                 </div>
 
                 <!-- 右側：個人背包 (用於買賣/查看) -->
-                <div class="shop-column" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; overflow-y: auto;">
-                    <h3 style="margin-top: 0; color: #4a90d9; border-bottom: 1px solid #444; padding-bottom: 10px;">我的物品</h3>
+                <div class="shop-column shop-right">
+                    <h3 class="shop-title">我的物品</h3>
                     <div id="shop-inventory-container">
                         <!-- 個人背包內容由 JS 產生 -->
                     </div>
@@ -117,17 +115,18 @@
                     <div class="hp-bar-container">
                         <div class="hp-bar player" id="player-hp-bar" style="width: 100%;"></div>
                     </div>
-                    <div id="player-hp-text">100/100</div
+                    <div class="hp-bar-text" id="player-hp-text">100/100</div>
                 </div>
-                <div style="font-size: 32px; color: #ffd700;">VS</div>
+                <div class="battle-vs">VS</div>
                 <div class="combatant" id="enemy-combatant">
                     <div class="combatant-icon" id="enemy-icon">👾</div>
                     <div class="combatant-name" id="enemy-name">怪物</div>
                     <div class="hp-bar-container">
                         <div class="hp-bar" id="enemy-hp-bar" style="width: 100%;"></div>
                     </div>
-                    <div id="enemy-hp-text">50/50</div
+                    <div class="hp-bar-text" id="enemy-hp-text">50/50</div>
                 </div>
+                <div id="battle-result-container"></div>
             </div>
             <div class="battle-actions" id="battle-actions">
                 <button class="btn btn-primary" id="btn-action-attack">⚔️ 攻擊</button>
@@ -136,7 +135,6 @@
                 <button class="btn btn-danger" id="btn-action-flee">🏃 逃跑</button>
             </div>
             <div class="battle-log" id="battle-log"></div>
-            <div id="battle-result-container"></div>
         </div>
     </div>
 

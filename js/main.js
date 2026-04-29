@@ -11,7 +11,8 @@ class Game {
         this.battle = null;
         this.selectedClassKey = null;
         this.isInitialized = false;
-        
+        this.wave = 0; // 戰鬥波數
+
         this.init();
     }
 
@@ -61,6 +62,16 @@ class Game {
 
             const id = target.id;
 
+            // 處理點擊裝備格（脫下裝備）
+            if (target.classList.contains('equip-slot')) {
+                const slotId = target.dataset.slotId;
+                if (this.player && typeof this.player.unequipItem === 'function') {
+                    this.player.unequipItem(slotId);
+                    this.ui.updatePlayerPanel(this.player);
+                }
+                return;
+            }
+
             // 處理具有 class 的按鈕 (例如：btn-unequip, btn-buy-item)
             if (target.classList.contains('btn-unequip')) {
                 const slotId = target.dataset.slotId;
@@ -72,6 +83,12 @@ class Game {
             }
 
             if (target.classList.contains('inventory-item')) {
+                // 檢查是否在商店場景中，如果是則不觸發裝備功能
+                const shopScene = document.getElementById('scene-shop');
+                if (shopScene && shopScene.classList.contains('active')) {
+                    return;
+                }
+
                 const itemName = target.dataset.itemName;
                 if (this.player && typeof this.player.equipItem === 'function') {
                     const item = this.player.inventory.find(i => i.name === itemName);
@@ -90,6 +107,13 @@ class Game {
                 return;
             }
 
+            // 處理販售按鈕
+            if (target.classList.contains('btn-sell-item')) {
+                const itemKey = target.dataset.itemKey;
+                this.handleSellAction(itemKey);
+                return;
+            }
+
             // 處理一般 ID 按鈕
             switch (id) {
                 case 'btn-start-adventure': 
@@ -97,7 +121,7 @@ class Game {
                     break;
                 case 'btn-start-adventure-main':
                 case 'btn-go-training':
-                    this.handleTraining();
+                    await this.handleTraining();
                     break;
                 case 'btn-go-shop':
                     if (this.player) {
@@ -154,6 +178,34 @@ class Game {
         this.player.gold -= item.price;
         this.player.addItem(item);
         console.log(`成功購買: ${item.name}`);
+        this.ui.renderShop(this.player);
+    }
+
+    handleSellAction(itemKey) {
+        // --- 驗證 player 實例 ---
+        if (!this.player) {
+            console.error("❌ 販售失敗：玩家實例無效");
+            return;
+        }
+
+        const item = ITEMS[itemKey];
+        if (!item) {
+            console.error("❌ 販售失敗：找不到物品", itemKey);
+            return;
+        }
+
+        // 檢查玩家是否擁有該物品
+        const index = this.player.inventory.findIndex(i => i.id === itemKey);
+        if (index === -1) {
+            console.error("❌ 販售失敗：玩家沒有此物品");
+            return;
+        }
+
+        // 販售：將物品從背包移除，並獲得金幣（售價為原價的 50%）
+        const sellPrice = Math.floor(item.price * 0.5);
+        this.player.inventory.splice(index, 1);
+        this.player.gold += sellPrice;
+        console.log(`成功販售: ${item.name}，獲得 ${sellPrice} 金幣`);
         this.ui.renderShop(this.player);
     }
 
@@ -223,11 +275,21 @@ class Game {
                     speed: savedData.speed,
                     gold: savedData.gold,
                     inventory: JSON.parse(JSON.stringify(savedData.inventory || [])),
-                    equipment: JSON.parse(JSON.stringify(savedData.equipment || { weapon: null, armor: null }))
+                    equipment: JSON.parse(JSON.stringify(savedData.equipment || {
+                        weapon: null,
+                        armor: null,
+                        helm: null,
+                        shoes: null,
+                        shield: null,
+                        accessory: null
+                    }))
                 });
 
                 this.player = loadedPlayer;
                 console.log("玩家實例重建成功:", this.player);
+
+                // 復原波數（如有）
+                this.wave = savedData.wave || 0;
 
                 this.battle = new BattleEngine(this.player, this.ui);
                 this.bindPlayerListeners(this.player);
@@ -250,9 +312,12 @@ class Game {
 
     async handleTraining() {
         if (!this.player) return;
-        console.log("啟動訓練流程...");
+        console.log(`啟動第 ${this.wave + 1} 波戰鬥...`);
         this.ui.showScene('battle');
-        await this.battle.startBattle(0, this);
+        await this.battle.startBattle(this.wave, this);
+        this.wave++; // 每場戰鬥波數 +1
+        // 儲存波數到存檔中
+        SaveManager.save(this.player, { wave: this.wave });
     }
 
     updateMainUI() {

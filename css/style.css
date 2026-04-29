@@ -15,14 +15,15 @@ body {
 }
 
 #game-container {
-    width: 900px;
-    max-height: 650px; /* 改用 max-height */
+    width: calc(100vw - 40px);
+    max-width: none;
+    height: calc(100vh - 40px);
     background: #0f0f23;
     border-radius: 15px;
     border: 3px solid #4a90d9;
     box-shadow: 0 0 30px rgba(74, 144, 217, 0.4);
     position: relative;
-    overflow-y: auto; /* 重要：允許內容超出時捲動 */
+    overflow: auto; /* 重要：允許內容超出時捲動 */
 }
 
 /* 場景通用樣式 */
@@ -146,16 +147,16 @@ h3 {
 /* 主場景佈局 */
 .main-layout {
     display: grid;
-    grid-template-columns: 250px 1fr 250px;
-    gap: 15px;
-    margin-top: 10px;
+    grid-template-columns: 280px 1fr 320px;
+    gap: 22px;
+    margin-top: 14px;
 }
 
 .panel {
     background: #1a1a2e;
     border: 2px solid #2a2a4e;
     border-radius: 10px;
-    padding: 15px;
+    padding: 18px;
 }
 
 .panel-title {
@@ -183,7 +184,94 @@ h3 {
     font-weight: bold;
 }
 
+/* 商店商品 */
+.shop-item {
+    background: #0f0f23;
+    border: 2px solid #2a2a4e;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.shop-item:hover {
+    border-color: #4a90d9;
+    box-shadow: 0 0 10px rgba(74, 144, 217, 0.3);
+}
+
+/* 商店版面與 RWD 調整 */
+.shop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 12px;
+}
+
+.gold-badge {
+    font-size: 1.05em;
+    background: #ffd700;
+    color: #333;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+}
+
+.shop-container {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 20px;
+    min-height: 60vh;
+}
+
+.shop-column {
+    padding: 15px;
+    border-radius: 10px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.06);
+    border: 1px solid rgba(255,255,255,0.03);
+}
+
+.shop-left { background: rgba(0,0,0,0.25); }
+.shop-right { background: rgba(255,255,255,0.03); }
+
+.shop-title {
+    margin-top: 0;
+    color: #ffd700;
+    border-bottom: 1px solid #444;
+    padding-bottom: 10px;
+    font-size: 16px;
+}
+
+.shop-right .shop-title { color: #4a90d9; }
+.shop-items-list { display: flex; flex-direction: column; gap: 10px; }
+
+/* 商店欄位最大高度以避免整頁過長，並在小螢幕縮短 */
+.shop-column { max-height: calc(70vh - 120px); }
+
+@media (max-width: 768px) {
+    .shop-container { grid-template-columns: 1fr; }
+    .shop-header { flex-direction: column; align-items: stretch; }
+    .shop-header .gold-badge { margin-bottom: 8px; align-self: start; }
+    .shop-column { max-height: calc(60vh - 140px); }
+}
+
+@media (max-width: 420px) {
+    .gold-badge { font-size: 0.95em; padding: 6px 10px; }
+    .shop-column { padding: 10px; }
+}
+
 /* 裝備欄 */
+/* 裝備欄 */
+#equipment-panel {
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
 .equip-slot {
     background: #0f0f23;
     border: 2px solid #2a2a4e;
@@ -214,63 +302,145 @@ h3 {
 }
 
 /* 戰鬥場景 */
+.wave-indicator {
+    text-align: center;
+    font-size: 18px;
+    color: #ffd700;
+    margin-bottom: 10px;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
 .battle-arena {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+    gap: 40px;
     margin: 20px 0;
-    padding: 20px;
+    padding: 30px;
     background: #1a1a2e;
     border-radius: 10px;
+    position: relative;
+}
+
+.battle-result {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    padding: 30px;
+    background: rgba(26, 26, 46, 0.95);
+    border-radius: 15px;
+    border: 3px solid #ffd700;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    z-index: 10;
+    min-width: 300px;
+}
+
+.result-title {
+    font-size: 32px;
+    margin-bottom: 15px;
+}
+
+.result-title.victory { color: #6ab06a; }
+.result-title.defeat { color: #b06a6a; }
+
+.battle-result p {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: #e0e0e0;
+}
+
+.battle-result .btn {
+    margin: 5px;
+    font-size: 16px;
+    padding: 12px 30px;
 }
 
 .combatant {
     text-align: center;
+    flex: 1;
+    max-width: 300px;
 }
 
 .combatant-icon {
-    font-size: 64px;
-    margin-bottom: 10px;
+    font-size: 80px;
+    margin-bottom: 15px;
 }
 
 .combatant-name {
-    font-size: 16px;
-    margin-bottom: 5px;
+    font-size: 18px;
+    margin-bottom: 10px;
+    font-weight: bold;
 }
 
 .hp-bar-container {
-    width: 150px;
-    height: 20px;
+    width: 200px;
+    height: 24px;
     background: #0f0f23;
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
-    margin: 5px auto;
+    margin: 10px auto;
+    border: 2px solid #2a2a4e;
 }
 
+/* 回復血條樣式 */
 .hp-bar {
     height: 100%;
     background: linear-gradient(90deg, #ff4444, #ff6666);
-    transition: width 0.3s;
-    border-radius: 10px;
+    transition: width 0.3s ease;
+    border-radius: 12px;
+    width: 0%;
 }
 
 .hp-bar.player {
     background: linear-gradient(90deg, #44ff44, #66ff66);
 }
 
+.equip-slot {
+    background: #0f0f23;
+    border: 2px solid #2a2a4e;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.equip-slot:hover {
+    border-color: #4a90d9;
+    transform: translateY(-2px);
+}
+.equip-slot.filled {
+    border-color: #6ab06a;
+}
+.equip-slot-label {
+    font-size: 13px;
+    color: #a0a0a0;
+}
+.equip-slot-item {
+    font-size: 14px;
+    color: #ffd700;
+}
+
 .battle-log {
-    height: 200px; /* 稍微加大高度 */
+    height: 180px;
     overflow-y: auto;
     background: #0f0f23;
     border-radius: 8px;
-    padding: 10px;
-    margin-top: 15px;
-    font-size: 13px;
-    line-height: 1.6;
+    padding: 15px;
+    margin-top: 20px;
+    font-size: 14px;
+    line-height: 1.8;
+    border: 2px solid #2a2a4e;
 }
 
 .battle-log p {
-    margin-bottom: 5px;
+    margin-bottom: 6px;
 }
 
 .log-player { color: #6ab06a; }
@@ -281,8 +451,14 @@ h3 {
 .battle-actions {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-top: 15px;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.battle-actions .btn {
+    padding: 15px 20px;
+    font-size: 16px;
+    font-weight: bold;
 }
 
 /* 物品欄 */
@@ -290,6 +466,44 @@ h3 {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
+}
+
+/* 讓背包/商店格在內容超出時可滾動 */
+.inventory-grid {
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+/* 固定主行動按鈕（開始戰鬥）——尺寸穩定，不隨容器縮放 */
+.fixed-action {
+    padding: 16px 36px;
+    font-size: 18px;
+    min-width: 180px;
+    max-width: 260px;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+/* 物品與裝備格可縮放 */
+.inventory-grid {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+}
+.inventory-item {
+    padding: 10px;
+    font-size: clamp(12px, 1.6vw, 14px);
+    border-radius: 8px;
+}
+.equip-slot {
+    font-size: clamp(12px, 1.2vw, 14px);
+}
+
+@media (max-width: 768px) {
+    .fixed-action { min-width: 140px; padding: 12px 26px; font-size: 16px; }
+}
+
+@media (max-width: 420px) {
+    .fixed-action { min-width: 120px; padding: 10px 18px; font-size: 15px; }
 }
 
 .inventory-item {
@@ -301,6 +515,34 @@ h3 {
     cursor: pointer;
     transition: all 0.3s;
     font-size: 12px;
+}
+
+/* 稀有度徽章 */
+.rarity-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    border: 1px solid rgba(0,0,0,0.15);
+}
+.rarity-badge.small {
+    padding: 2px 6px;
+    font-size: 11px;
+    border-radius: 6px;
+}
+.rarity-badge.common {
+    background: transparent;
+    color: #a0a0a0;
+    border: 1px solid #2a2a4e;
+}
+
+/* 物品屬性行 */
+.item-stats {
+    font-size: 11px;
+    color: #c0c0c0;
+    margin-top: 4px;
 }
 
 /* 等級顯示 */
@@ -329,24 +571,6 @@ h3 {
     transition: width 0.3s;
     border-radius: 6px;
 }
-
-/* 戰鬥結束畫面樣式 */
-.battle-result {
-    text-align: center;
-    padding: 20px;
-    background: #1a1a2e;
-    border-radius: 10px;
-    margin-top: 15px;
-    border: 2px solid #4a90d9;
-}
-
-.result-title {
-    font-size: 28px;
-    margin-bottom: 15px;
-}
-
-.result-title.victory { color: #6ab06a; }
-.result-title.defeat { color: #b06a6a; }
 
 /* 動畫 */
 @keyframes fadeIn {
@@ -393,4 +617,72 @@ h3 {
 
 .tip-bubble.show {
     display: block;
+}
+
+/* ------------------
+   Responsive (RWD)
+   ------------------ */
+
+/* 手機與小螢幕基底調整 */
+@media (max-width: 768px) {
+    body {
+        align-items: flex-start; /* 讓容器靠上，避免手機垂直置中造成看不到上方 */
+        padding: 20px 0;
+    }
+
+    #game-container {
+        width: calc(100% - 24px);
+        border-radius: 12px;
+        padding: 12px;
+    }
+
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 16px; }
+
+    .class-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+    .main-layout {
+        grid-template-columns: 1fr; /* 直欄堆疊 */
+        gap: 12px;
+    }
+
+    .panel { padding: 12px; }
+
+    .combatant-icon { font-size: 56px; }
+    .battle-arena { flex-direction: column; padding: 16px; gap: 12px; }
+    .battle-vs { font-size: 28px; }
+    .hp-bar-container { width: 160px; }
+
+    .battle-actions {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .battle-actions .btn { padding: 12px; font-size: 15px; }
+
+    .inventory-grid { grid-template-columns: repeat(3, 1fr); }
+    .class-icon { font-size: 40px; }
+
+    /* 提示按鈕位置適應 */
+    .tip-icon { right: 12px; bottom: 12px; font-size: 24px; }
+    .tip-bubble { left: 12px; right: 12px; transform: none; bottom: 56px; }
+}
+
+/* 極小螢幕優化 (小手機) */
+@media (max-width: 420px) {
+    #game-container { padding: 10px; }
+    .class-grid { grid-template-columns: 1fr; }
+    .inventory-grid { grid-template-columns: repeat(2, 1fr); }
+    .battle-actions { grid-template-columns: 1fr; }
+    .btn { padding: 14px 12px; font-size: 16px; }
+
+    /* 增加點擊目標高度 */
+    .equip-slot, .inventory-item, .btn { min-height: 44px; }
+}
+
+/* 觸控優化：增大可點擊區域，避免被系統縮放影響 */
+@media (hover: none) and (pointer: coarse) {
+    .btn { padding: 14px 18px; font-size: 16px; }
+    .class-card { padding: 18px; }
 }

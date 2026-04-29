@@ -1,4 +1,4 @@
-import { ITEMS } from './data.js';
+import { ITEMS, RARITY } from './data.js';
 
 export class UIManager {
     constructor() {
@@ -24,7 +24,7 @@ export class UIManager {
         const infoDiv = document.getElementById('player-info');
         if (!infoDiv || !player) return;
 
-        infoDiv.innerHTML = `\n            <div class="level-badge">LV.${player.level} ${player.className}</div>\n            <div class="stat-row"><span class="stat-label">❤️ HP</span><span class="stat-value">${Math.ceil(player.hp)}/${player.maxHp}</span></div >\n            <div class="stat-row"><span class="stat-label">⚔️ ATK</span><span class="stat-value">${player.totalAtk}</span></div >\n            <div class="stat-row"><span class="stat-label">🛡️ DEF</span><span class="stat-value">${player.totalDef}</span></div >\n            <div class="stat-row"><span class="stat-label">✨ SPD</span><span class="stat-value">${player.speed}</span></div >\n            <div class="stat-row"><span class="stat-label">💰 GOLD</span><span class="stat-value">${player.gold}</span></div >\n            <div class="exp-bar-container">\n                <div class="exp-bar" style="width: ${(player.exp / player.nextLevelExp) * 100}%</div >\n        `;
+        infoDiv.innerHTML = `\n            <div class="level-badge">LV.${player.level} ${player.className}</div>\n            <div class="stat-row"><span class="stat-label">❤️ HP</span><span class="stat-value">${Math.ceil(player.hp)}/${player.maxHp}</span></div >\n            <div class="stat-row"><span class="stat-label">⚔️ ATK</span><span class="stat-value">${player.totalAtk}</span></div >\n            <div class="stat-row"><span class="stat-label">🛡️ DEF</span><span class="stat-value">${player.totalDef}</span></div >\n            <div class="stat-row"><span class="stat-label">✨ SPD</span><span class="stat-value">${player.totalSpeed}</span></div >\n            <div class="stat-row"><span class="stat-label">💰 GOLD</span><span class="stat-value">${player.gold}</span></div >\n            <div class="stat-row"><span class="stat-label">🎒 背包</span><span class="stat-value">${player.inventory.length}/${player.inventoryLimit}</span></div>\n            <div class="exp-bar-container">\n                <div class="exp-bar" style="width: ${(player.exp / player.nextLevelExp) * 100}%</div >\n        `;
         this.renderEquipment(player);
         this.renderInventory(player);
     }
@@ -32,7 +32,14 @@ export class UIManager {
     renderEquipment(player) {
         const equipPanel = document.getElementById('equipment-panel');
         if (!equipPanel || !player) return;
-        const slots = [{ id: 'weapon', label: '武器' }, { id: 'armor', label: '防具' }];
+        const slots = [
+            { id: 'weapon', label: '武器' },
+            { id: 'armor', label: '胸甲' },
+            { id: 'helm', label: '頭盔' },
+            { id: 'shoes', label: '鞋子' },
+            { id: 'shield', label: '盾牌' },
+            { id: 'accessory', label: '飾品' }
+        ];
         equipPanel.innerHTML = '';
 
         slots.forEach(slot => {
@@ -41,9 +48,20 @@ export class UIManager {
             slotEl.className = `equip-slot ${item ? 'filled' : ''}`;
             // 這裡我們增加一個 data-attribute，讓 main.js 的委派可以抓到它
             slotEl.dataset.slotId = slot.id;
-            
+            slotEl.style.cursor = 'pointer';
+
             if (item) {
-                slotEl.innerHTML = `\n                <div class="equip-slot-label">${slot.label}</div>\n                <div class="equip-slot-item">${item.icon} ${item.name}</div>\n                <button class="btn-unequip" data-slot-id="${slot.id}" style="position: absolute; top: -5px; right: -5px; background: #ff4d4d; border: none; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer;">✕</button>\n            `;
+                const rarityColor = item.rarity ? RARITY[item.rarity]?.color || '#ffffff' : '#ffffff';
+                const rarityName = item.rarity ? RARITY[item.rarity]?.name || item.rarity : '';
+                const badgeHtml = (item.rarity && item.rarity !== 'common') ? `<div class="rarity-badge" style="background:${rarityColor}; color:#fff;">${rarityName}</div>` : `<div class="rarity-badge common">${rarityName || '普通'}</div>`;
+                // 將稀有度顯示在裝備格中，並以稀有度顏色標示邊框
+                slotEl.style.borderColor = item.rarity && item.rarity !== 'common' ? rarityColor : '';
+                const stats = [];
+                if (typeof item.atk === 'number') stats.push(`⚔️ +${item.atk} ATK`);
+                if (typeof item.def === 'number') stats.push(`🛡️ +${item.def} DEF`);
+                if (typeof item.speed === 'number') stats.push(`💨 +${item.speed} SPD`);
+                const statsHtml = stats.length ? `<div class="item-stats">${stats.join('  ')}</div>` : '';
+                slotEl.innerHTML = `\n                <div class="equip-slot-label">${slot.label}</div>\n                <div style="display:flex; flex-direction:column; gap:6px;">\n                    <div style=\"display:flex; align-items:center; justify-content:space-between; gap:8px;\">\n                        <div class=\"equip-slot-item\" style=\"color: ${rarityColor};\">${item.icon} ${item.name}</div>\n                        ${badgeHtml}\n                    </div>\n                    ${statsHtml}\n                </div>\n            `;
             } else {
                 slotEl.innerHTML = `\n                <div class="equip-slot-label">${slot.label}</div>\n                <div class="equip-slot-item" style="color: #555;">--</div>\n            `;
             }
@@ -64,7 +82,16 @@ export class UIManager {
                 itemEl.className = 'inventory-item';
                 // 這裡也要使用 data-attribute，方便 main.js 的事件委派捕捉點擊物品的動作
                 itemEl.dataset.itemName = item.name;
-                itemEl.innerHTML = `<div class="item-icon">${item.icon}</div><div class="item-name">${item.name}</div>`;
+                const rarityColor = item.rarity ? RARITY[item.rarity]?.color || '#ffffff' : '#ffffff';
+                const rarityName = item.rarity ? RARITY[item.rarity]?.name || item.rarity : '';
+                const badgeHtml = (item.rarity && item.rarity !== 'common') ? `<div class="rarity-badge small" style="background:${rarityColor}; color:#fff;">${rarityName}</div>` : `<div class="rarity-badge small common">${rarityName || '普通'}</div>`;
+                if (item.rarity && item.rarity !== 'common') itemEl.style.borderColor = rarityColor;
+                const stats = [];
+                if (typeof item.atk === 'number') stats.push(`⚔️ +${item.atk} ATK`);
+                if (typeof item.def === 'number') stats.push(`🛡️ +${item.def} DEF`);
+                if (typeof item.speed === 'number') stats.push(`💨 +${item.speed} SPD`);
+                const statsHtml = stats.length ? `<div class="item-stats">${stats.join('  ')}</div>` : '';
+                itemEl.innerHTML = `\n                    <div style="display:flex; justify-content:space-between; align-items:center;">\n                        <div>\n                            <div class=\"item-icon\">${item.icon}</div>\n                            <div class=\"item-name\" style=\"color: ${rarityColor};\">${item.name}</div>\n                            ${statsHtml}\n                        </div>\n                        ${badgeHtml}\n                    </div>`;
                 grid.appendChild(itemEl);
             });
             invPanel.appendChild(grid);
@@ -88,10 +115,26 @@ export class UIManager {
         Object.keys(ITEMS).forEach(itemKey => {
             const item = ITEMS[itemKey];
             const priceText = (item.price !== undefined) ? `${item.price} 金幣` : '--';
-            
+            const rarityColor = item.rarity ? RARITY[item.rarity]?.color || '#ffffff' : '#ffffff';
+            const rarityName = item.rarity ? RARITY[item.rarity]?.name || item.rarity : '';
+            const badgeHtml = (item.rarity && item.rarity !== 'common') ? `<div class="rarity-badge small" style="background:${rarityColor}; color:#fff; margin-right:8px;">${rarityName}</div>` : `<div class="rarity-badge small common" style="margin-right:8px;">${rarityName || '普通'}</div>`;
+
             const shopItemEl = document.createElement('div');
             shopItemEl.className = 'shop-item';
-            shopItemEl.innerHTML = `\n                <div style="font-size: 24px;">${item.icon}</div>\n                <div style="flex: 1; margin-left: 10px;">\n                    <div style="font-weight: bold;">${item.name}</div>\n                    <div style="font-size: 12px; color: #ffd700;">💰 ${priceText}</div>\n                </div>\n                <button class="btn btn-primary btn-buy-item" data-item-key="${itemKey}" style="padding: 5px 10px; font-size: 12px;">購買</button>\n            `;
+            if (item.rarity && item.rarity !== 'common') {
+                shopItemEl.style.borderColor = rarityColor;
+            }
+            shopItemEl.innerHTML = `\n                <div style="display:flex; align-items:center; gap:10px;">${badgeHtml}<div style="font-size: 24px;">${item.icon}</div></div>\n                <div style="flex: 1; margin-left: 10px;">\n                    <div style="font-weight: bold; color: ${rarityColor};">${item.name}</div>\n                    <div style="font-size: 12px; color: #ffd700;">💰 ${priceText}</div>\n                </div>\n                <button class="btn btn-primary btn-buy-item" data-item-key="${itemKey}" style="padding: 5px 10px; font-size: 12px;">購買</button>\n            `;
+            // 插入屬性顯示（若有）下方
+            const shopStats = [];
+            if (typeof item.atk === 'number') shopStats.push(`⚔️ +${item.atk} ATK`);
+            if (typeof item.def === 'number') shopStats.push(`🛡️ +${item.def} DEF`);
+            if (typeof item.speed === 'number') shopStats.push(`💨 +${item.speed} SPD`);
+            if (shopStats.length) {
+                const statRow = `<div style="font-size:12px; color:#a0a0a0; margin-top:6px;">${shopStats.join('  ')}</div>`;
+                // 在插入到 DOM 前補上屬性行
+                shopItemEl.innerHTML = shopItemEl.innerHTML.replace('</div>\n                <button', `</div>${statRow}\n                <button`);
+            }
             container.appendChild(shopItemEl);
         });
 
@@ -105,13 +148,22 @@ export class UIManager {
 
         if (player.inventory && player.inventory.length > 0) {
             const grid = document.createElement('div');
-            grid.className = 'inventory-grid'; 
+            grid.className = 'inventory-grid';
             player.inventory.forEach(item => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'inventory-item';
                 // 這裡也用 data-attribute，因為這是在商店場景內的背包
                 itemEl.dataset.itemName = item.name;
-                itemEl.innerHTML = `<div class="item-icon">${item.icon}</div><div style="font-size:12px;">${item.name}</div>`;
+                const rarityColor = item.rarity ? RARITY[item.rarity]?.color || '#ffffff' : '#ffffff';
+                const rarityName = item.rarity ? RARITY[item.rarity]?.name || item.rarity : '';
+                const badgeHtml = (item.rarity && item.rarity !== 'common') ? `<div class="rarity-badge small" style="background:${rarityColor}; color:#fff;">${rarityName}</div>` : `<div class="rarity-badge small common">${rarityName || '普通'}</div>`;
+                if (item.rarity && item.rarity !== 'common') itemEl.style.borderColor = rarityColor;
+                const stats = [];
+                if (typeof item.atk === 'number') stats.push(`⚔️ +${item.atk} ATK`);
+                if (typeof item.def === 'number') stats.push(`🛡️ +${item.def} DEF`);
+                if (typeof item.speed === 'number') stats.push(`💨 +${item.speed} SPD`);
+                const statsHtml = stats.length ? `<div class=\"item-stats\">${stats.join('  ')}</div>` : '';
+                itemEl.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">\n                        <div>\n                            <div class=\"item-icon\">${item.icon}</div>\n                            <div style=\"font-size:12px; color: ${rarityColor};\">${item.name}</div>\n                            ${statsHtml}\n                        </div>\n                        <div style=\"display:flex; align-items:center; gap:8px;\">${badgeHtml}<button class=\"btn btn-danger btn-sell-item\" data-item-key=\"${item.id}\" style=\"padding: 3px 8px; font-size: 11px;\">販售</button></div>\n                    </div>`;
                 grid.appendChild(itemEl);
             });
             container.appendChild(grid);
