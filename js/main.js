@@ -1,8 +1,8 @@
-import { CLASSES, ITEMS } from './data.js';
-import { Player } from './player.js';
-import { BattleEngine } from './battle.js';
-import { UIManager } from './ui.js';
-import { SaveManager } from './save_manager.js';
+import { CLASSES, ITEMS } from './data.js?version=1.0.0';
+import { Player } from './player.js?version=1.0.0';
+import { BattleEngine } from './battle.js?version=1.0.0';
+import { UIManager } from './ui.js?version=1.0.0';
+import { SaveManager } from './save_manager.js?version=1.0.0';
 
 class Game {
     constructor() {
@@ -314,8 +314,16 @@ class Game {
         if (!this.player) return;
         console.log(`啟動第 ${this.wave + 1} 波戰鬥...`);
         this.ui.showScene('battle');
-        await this.battle.startBattle(this.wave, this);
-        this.wave++; // 每場戰鬥波數 +1
+        // 等待戰鬥結束並取得結果（true = 勝利, false = 戰敗）
+        const result = await this.battle.startBattle(this.wave, this);
+
+        // 勝利：前進波數；戰敗：退回一層（最少為 1）
+        if (result) {
+            this.wave++;
+        } else {
+            this.wave = Math.max(1, this.wave - 1);
+        }
+
         // 儲存波數到存檔中
         SaveManager.save(this.player, { wave: this.wave });
     }

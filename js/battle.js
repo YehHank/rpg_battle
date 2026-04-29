@@ -72,6 +72,8 @@ export class BattleEngine {
                 await this.enemyTurn();
             }
         }
+        // 返回本次戰鬥結果（true = 勝利, false = 戰敗）
+        return this.battleResult === true;
     }
 
     async waitForPlayer() {
@@ -214,6 +216,9 @@ export class BattleEngine {
     async endBattle(isVictory, isFlee = false) {
         this.isBattleOver = true;
         this.ui.setBattleButtonsEnabled(false);
+
+        // 記錄戰鬥結果，供 startBattle 或呼叫端判斷
+        this.battleResult = !!isVictory;
 
         if (isVictory) {
             const goldEarned = this.enemy.goldReward || 0;
