@@ -1,0 +1,12 @@
+# Enforce consistent LF line endings for web project
+# Normalize text files and set LF for html/css/js
+* text=auto
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+
+# Keep common binary files untouched
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary

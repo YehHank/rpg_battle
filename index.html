@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勇者養成戰記</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 燈泡 TIP 圖示 -->
+        <div class="tip-icon" id="tip-icon">💡</div>
+
+        <!-- 燈泡 TIP 提示 -->
+        <div class="tip-bubble" id="tip-bubble">
+            <div class="tip-close" id="tip-close">✕</div>
+            <div id="tip-content"></div>
+        </div>
+
+        <!-- 職業選擇場景 -->
+        <div id="scene-class-select" class="scene active">
+            <h1>🗡️ 勇者養成戰記</h1>
+            <h2>選擇你的職業</h2>
+            <div class="class-grid" id="class-grid-container">
+                <!-- 由 JS 動態產生 -->
+            </div>
+        </div>
+
+        <!-- 角色創建場景 -->
+        <div id="scene-character-create" class="scene">
+            <h1>🗡️ 勇者養成戰記</h1>
+            <h2>建立角色</h2>
+            <div class="panel" style="max-width: 400px; margin: 20px auto;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">角色名稱：</label>
+                    <input type="text" id="char-name" placeholder="輸入角色名稱"
+                           style="width: 100%; padding: 10px; background: #0f0f23; border: 2px solid #4a90d9; color: #e0e0e0; border-radius: 5px;">
+                </div>
+                <div id="class-info" style="margin-bottom: 15px; padding: 10px; background: #0f0f23; border-radius: 5px;"></div>
+                <button class="btn btn-primary" id="btn-start-adventure" style="width: 100%;">開始冒險</button>
+            </div>
+        </div>
+
+        <!-- 主遊戲場景 -->
+        <div id="scene-game" class="scene">
+            <h2 id="game-title">勇者養成戰記</h2>
+            <div class="main-layout">
+                <!-- 左側：角色資訊 -->
+                <div class="panel collapsible-panel">
+                    <div class="panel-title collapsible-header" id="btn-toggle-player-info">
+                        📋 角色資訊 <span class="toggle-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content" id="player-info"></div>
+                    <div class="nav-bar">
+                        <button class="btn" id="btn-go-shop">商店</button>
+                    </div>
+                </div>
+
+                <!-- 中間：主要內容 -->
+                <div class="panel" id="main-content" style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <h3 id="main-welcome-text">歡迎來到冒險世界！</h3>
+                    <button class="btn btn-primary" id="btn-start-adventure-main" style="padding: 20px 40px; font-size: 18px;">⚔️ 開始戰鬥</button>
+                </div>
+
+                <!-- 右側：裝備與背包 -->
+                <div class="panel">
+                    <div class="panel-title">🎒 裝備欄</div>
+                    <div id="equipment-panel"></div>
+                    <div class="collapsible-panel">
+                        <div class="panel-title collapsible-header" id="btn-toggle-inventory">
+                            📦 背包 <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="collapsible-content" id="inventory-panel"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 商店場景 (重構為左右兩欄佈局) -->
+        <div id="scene-shop" class="scene">
+            <h2 style="margin: 0 0 15px 0;">🛒 冒險者商店</h2>
+            
+            <div class="shop-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="gold-badge" style="font-size: 1.2em; background: #ffd700; color: #333; padding: 5px 15px; border-radius: 20px; font-weight: bold;">
+                    💰 <span id="shop-gold-amount">0</span>
+                </div>
+                <button class="btn btn-danger" id="btn-back-to-game" style="padding: 5px 15px;">返回主畫面</button>
+            </div>
+
+            <div class="shop-container" style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; height: 70vh;">
+                <!-- 左側：商品清單 -->
+                <div class="shop-column" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; overflow-y: auto;">
+                    <h3 style="margin-top: 0; color: #ffd700; border-bottom: 1px solid #444; padding-bottom: 10px;">精選商品</h3>
+                    <div id="shop-items-container" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- 商品清單由 JS 產生 -->
+                    </div>
+                </div>
+
+                <!-- 右側：個人背包 (用於買賣/查看) -->
+                <div class="shop-column" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; overflow-y: auto;">
+                    <h3 style="margin-top: 0; color: #4a90d9; border-bottom: 1px solid #444; padding-bottom: 10px;">我的物品</h3>
+                    <div id="shop-inventory-container">
+                        <!-- 個人背包內容由 JS 產生 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 戰鬥場景 -->
+        <div id="scene-battle" class="scene">
+            <h2>⚔️ 戰鬥</h2>
+            <div class="wave-indicator" id="wave-indicator"></div>
+            <div class="battle-arena">
+                <div class="combatant" id="player-combatant">
+                    <div class="combatant-icon" id="player-icon">🧙</div>
+                    <div class="combatant-name" id="player-name">角色</div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar player" id="player-hp-bar" style="width: 100%;"></div>
+                    </div>
+                    <div id="player-hp-text">100/100</div
+                </div>
+                <div style="font-size: 32px; color: #ffd700;">VS</div>
+                <div class="combatant" id="enemy-combatant">
+                    <div class="combatant-icon" id="enemy-icon">👾</div>
+                    <div class="combatant-name" id="enemy-name">怪物</div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar" id="enemy-hp-bar" style="width: 100%;"></div>
+                    </div>
+                    <div id="enemy-hp-text">50/50</div
+                </div>
+            </div>
+            <div class="battle-actions" id="battle-actions">
+                <button class="btn btn-primary" id="btn-action-attack">⚔️ 攻擊</button>
+                <button class="btn" id="btn-action-skill">✨ 技能</button>
+                <button class="btn" id="btn-action-defend">🛡️ 防禦</button>
+                <button class="btn btn-danger" id="btn-action-flee">🏃 逃跑</button>
+            </div>
+            <div class="battle-log" id="battle-log"></div>
+            <div id="battle-result-container"></div>
+        </div>
+    </div>
+
+    <!-- 引入模組化 JS -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
