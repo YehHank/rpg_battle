@@ -123,16 +123,20 @@ export class BattleEngine {
     }
 
     async playerAttack() {
-        const finalDmg = Math.max(1, this.player.totalAtk - (this.enemy.def || 0));
-        this.ui.logCombat(`${this.player.name} 發動了攻擊！`, 'combat');
-        await this.executeAttack('enemy', finalDmg);
+        const base = Math.max(1, this.player.totalAtk - (this.enemy.def || 0));
+        const isCrit = Math.random() < (this.player.critChance || 0);
+        const finalDmg = isCrit ? Math.floor(base * this.player.critMultiplier) : base;
+        this.ui.logCombat(`${this.player.name} 發動了攻擊！${isCrit ? '（暴擊！）' : ''}`, 'combat');
+        await this.executeAttack('enemy', finalDmg, isCrit);
     }
 
     async playerSkill() {
         const skillMultiplier = 1.5;
-        const finalDmg = Math.max(1, Math.floor(this.player.totalAtk * skillMultiplier) - (this.enemy.def || 0));
-        this.ui.logCombat(`${this.player.name} 使用了技能 ${this.player.skillName}！💥`, 'combat');
-        await this.executeAttack('enemy', finalDmg);
+        const base = Math.max(1, Math.floor(this.player.totalAtk * skillMultiplier) - (this.enemy.def || 0));
+        const isCrit = Math.random() < (this.player.critChance || 0);
+        const finalDmg = isCrit ? Math.floor(base * this.player.critMultiplier) : base;
+        this.ui.logCombat(`${this.player.name} 使用了技能 ${this.player.skillName}！💥${isCrit ? '（暴擊！）' : ''}`, 'combat');
+        await this.executeAttack('enemy', finalDmg, isCrit);
     }
 
     async playerDefend() {
@@ -149,11 +153,15 @@ export class BattleEngine {
         }
     }
 
-    async executeAttack(targetType, damage) {
+    async executeAttack(targetType, damage, isCrit = false) {
         if (targetType === 'enemy') {
             this.enemy.hp -= damage;
             if (this.enemy.hp <= 0) this.enemy.hp = 0;
             this.ui.shakeElement('enemy-combatant');
+            // 顯示浮動傷害
+            if (this.ui && typeof this.ui.showFloatingDamage === 'function') {
+                this.ui.showFloatingDamage('enemy-combatant', damage, { isCrit });
+            }
             this.ui.logCombat(`對 ${this.enemy.name} 造成了 ${damage} 點傷害！`, 'combat');
             if (this.enemy.hp <= 0) {
                 await this.handleEnemyDeath();
@@ -161,7 +169,17 @@ export class BattleEngine {
         } else if (targetType === 'player') {
             const actualDmg = this.player.takeDamage(damage);
             this.ui.shakeElement('player-combatant');
-            this.ui.logCombat(`${this.player.name} 受到了 ${actualDmg} 點傷害！`, 'combat');
+            if (actualDmg === 0) {
+                this.ui.logCombat(`${this.player.name} 閃避了攻擊！`, 'system');
+                if (this.ui && typeof this.ui.showFloatingDamage === 'function') {
+                    this.ui.showFloatingDamage('player-combatant', 'Miss', { isCrit: false });
+                }
+            } else {
+                this.ui.logCombat(`${this.player.name} 受到了 ${actualDmg} 點傷害！`, 'combat');
+                if (this.ui && typeof this.ui.showFloatingDamage === 'function') {
+                    this.ui.showFloatingDamage('player-combatant', actualDmg, { isCrit: false });
+                }
+            }
             if (this.player.hp <= 0) {
                 await this.handlePlayerDeath();
             }

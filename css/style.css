@@ -686,3 +686,51 @@ h3 {
     .btn { padding: 14px 18px; font-size: 16px; }
     .class-card { padding: 18px; }
 }
+
+/* 浮動傷害文字 */
+.damage-float {
+    pointer-events: none;
+    color: #ff4d4d;
+    font-weight: 800;
+    text-shadow: 0 0 6px rgba(0,0,0,0.6);
+    animation: floatUp 0.9s ease forwards;
+    z-index: 9999;
+}
+.damage-crit {
+    color: #ffd700;
+    font-size: 22px;
+    transform-origin: center;
+    text-shadow: 0 0 8px rgba(255,215,0,0.9);
+}
+
+@keyframes floatUp {
+    0% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+    70% { transform: translate(-50%, -40px) scale(1.05); opacity: 0.9; }
+    100% { transform: translate(-50%, -70px) scale(1.0); opacity: 0; }
+}
+
+/* 屬性分配模態視窗 */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+.modal-content {
+    width: 420px;
+    max-width: calc(100% - 40px);
+    background: #101226;
+    border: 2px solid #2a2a4e;
+    padding: 18px;
+    border-radius: 10px;
+    text-align: center;
+}
+.alloc-rows { display: grid; gap: 8px; margin-top: 12px; }
+.alloc-row { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border-radius:6px; background:#0f1220; }
+.alloc-controls { display:flex; gap:8px; align-items:center; }
+.alloc-value { min-width:28px; display:inline-block; text-align:center; font-weight:700; color:#ffd700; }
+.alloc-remaining { margin-top:10px; color:#a0a0a0; }
+

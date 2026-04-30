@@ -1,4 +1,5 @@
 import { CLASSES } from './data.js';
+import { POINTS_PER_LEVEL, STAT_COEFFICIENTS, DEFAULT_CLASS_STATS } from './stats_config.js';
 
 export class Player {
     constructor(name, classKey) {
@@ -15,6 +16,18 @@ export class Player {
         this.def = classData.baseDef;
         this.speed = classData.baseSpeed;
         this.skillName = classData.baseSkill;
+
+        // --- 新增：基礎六屬性（可由 stats_config 提供預設） ---
+        const stats = DEFAULT_CLASS_STATS[classKey] || { str: 5, agi: 5, vit: 5, int: 5, dex: 5, luk: 5 };
+        this.str = stats.str;
+        this.agi = stats.agi;
+        this.vit = stats.vit;
+        this.int = stats.int;
+        this.dex = stats.dex;
+        this.luk = stats.luk;
+
+        // 可分配的升級點數（升級時增加 POINTS_PER_LEVEL）
+        this.statPointsAvailable = 0;
 
         // 成長屬性
         this.level = 1;
@@ -57,7 +70,9 @@ export class Player {
         let bonus = 0;
         if (this.equipment.weapon) bonus += this.equipment.weapon.atk || 0;
         if (this.equipment.accessory) bonus += this.equipment.accessory.atk || 0;
-        return this.atk + bonus;
+        // 包含來自屬性的攻擊加成
+        const atkFromStats = Math.floor(this.str * STAT_COEFFICIENTS.STR_ATK);
+        return this.atk + bonus + atkFromStats;
     }
 
     get totalDef() {
@@ -66,7 +81,8 @@ export class Player {
         if (this.equipment.helm) bonus += this.equipment.helm.def || 0;
         if (this.equipment.shield) bonus += this.equipment.shield.def || 0;
         if (this.equipment.accessory) bonus += this.equipment.accessory.def || 0;
-        return this.def + bonus;
+        const defFromVit = Math.floor(this.vit * STAT_COEFFICIENTS.VIT_DEF_PER_POINT);
+        return this.def + bonus + defFromVit;
     }
 
     get totalSpeed() {
@@ -75,6 +91,51 @@ export class Player {
         if (this.equipment.shoes) bonus += this.equipment.shoes.speed || 0;
         if (this.equipment.accessory) bonus += this.equipment.accessory.speed || 0;
         return this.speed + bonus;
+    }
+
+    // --- 屬性衍生值 ---
+    get attackCooldownMs() {
+        const base = 1000;
+        const agiReduction = Math.floor(this.agi * STAT_COEFFICIENTS.AGI_ASPD_REDUCTION_MS);
+        const equipReduction = Math.floor(this.totalSpeed * STAT_COEFFICIENTS.EQUIP_SPEED_MS);
+        return Math.max(120, base - agiReduction - equipReduction);
+    }
+
+    get critChance() {
+        return Math.min(0.5, STAT_COEFFICIENTS.LUK_CRIT_BASE + this.luk * STAT_COEFFICIENTS.LUK_CRIT_PER_POINT);
+    }
+
+    get critMultiplier() {
+        return STAT_COEFFICIENTS.CRIT_MULT;
+    }
+
+    get dodgeChance() {
+        return Math.min(0.5, this.luk * STAT_COEFFICIENTS.LUK_DODGE_PER_POINT);
+    }
+
+    allocateStat(statName, delta) {
+        const keys = ['str','agi','vit','int','dex','luk'];
+        if (!keys.includes(statName)) return false;
+        const amount = Number(delta) || 0;
+        if (amount <= 0) return false;
+        if (this.statPointsAvailable < amount) return false;
+        this[statName] += amount;
+        this.statPointsAvailable -= amount;
+        this._notifyChange();
+        return true;
+    }
+
+    applyAllocation(pendingAlloc) {
+        if (!pendingAlloc) return false;
+        const keys = ['str','agi','vit','int','dex','luk'];
+        let total = 0;
+        keys.forEach(k => { total += Math.max(0, Number(pendingAlloc[k] || 0)); });
+        if (total > this.statPointsAvailable) return false;
+        keys.forEach(k => {
+            const v = Math.max(0, Number(pendingAlloc[k] || 0));
+            if (v > 0) this.allocateStat(k, v);
+        });
+        return true;
     }
 
     // --- 新增：加入物品功能 ---
@@ -141,6 +202,11 @@ export class Player {
     }
 
     takeDamage(amount) {
+        // 閃避判定（若閃避則回傳 0）
+        if (Math.random() < this.dodgeChance) {
+            this._notifyChange();
+            return 0;
+        }
         const actualDamage = Math.max(1, amount - this.totalDef);
         this.hp = Math.max(0, this.hp - actualDamage);
         this._notifyChange();
@@ -163,6 +229,8 @@ export class Player {
         this.atk += 5;
         this.def += 2;
         this.speed += 1;
+        // 每次升級額外給予可分配點數
+        this.statPointsAvailable += POINTS_PER_LEVEL;
         this._notifyChange();
     }
 }

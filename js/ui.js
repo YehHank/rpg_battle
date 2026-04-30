@@ -23,10 +23,118 @@ export class UIManager {
     updatePlayerPanel(player) {
         const infoDiv = document.getElementById('player-info');
         if (!infoDiv || !player) return;
-
-        infoDiv.innerHTML = `\n            <div class="level-badge">LV.${player.level} ${player.className}</div>\n            <div class="stat-row"><span class="stat-label">❤️ HP</span><span class="stat-value">${Math.ceil(player.hp)}/${player.maxHp}</span></div >\n            <div class="stat-row"><span class="stat-label">⚔️ ATK</span><span class="stat-value">${player.totalAtk}</span></div >\n            <div class="stat-row"><span class="stat-label">🛡️ DEF</span><span class="stat-value">${player.totalDef}</span></div >\n            <div class="stat-row"><span class="stat-label">✨ SPD</span><span class="stat-value">${player.totalSpeed}</span></div >\n            <div class="stat-row"><span class="stat-label">💰 GOLD</span><span class="stat-value">${player.gold}</span></div >\n            <div class="stat-row"><span class="stat-label">🎒 背包</span><span class="stat-value">${player.inventory.length}/${player.inventoryLimit}</span></div>\n            <div class="exp-bar-container">\n                <div class="exp-bar" style="width: ${(player.exp / player.nextLevelExp) * 100}%</div >\n        `;
+        infoDiv.innerHTML = `\n            <div class="level-badge">LV.${player.level} ${player.className}</div>\n            <div class="stat-row"><span class="stat-label">STR</span><span class="stat-value">${player.str}</span></div>\n            <div class="stat-row"><span class="stat-label">AGI</span><span class="stat-value">${player.agi}</span></div>\n            <div class="stat-row"><span class="stat-label">VIT</span><span class="stat-value">${player.vit}</span></div>\n            <div class="stat-row"><span class="stat-label">INT</span><span class="stat-value">${player.int}</span></div>\n            <div class="stat-row"><span class="stat-label">DEX</span><span class="stat-value">${player.dex}</span></div>\n            <div class="stat-row"><span class="stat-label">LUK</span><span class="stat-value">${player.luk}</span></div>\n            <div class="stat-row"><span class="stat-label">🔷 可分配點數</span><span class="stat-value">${player.statPointsAvailable} <button class="btn btn-primary" id="btn-open-allocate" ${player.statPointsAvailable <= 0 ? 'disabled' : ''}>分配點數</button></span></div>\n            <div class="stat-row"><span class="stat-label">❤️ HP</span><span class="stat-value">${Math.ceil(player.hp)}/${player.maxHp}</span></div>\n            <div class="stat-row"><span class="stat-label">⚔️ ATK</span><span class="stat-value">${player.totalAtk}</span></div>\n            <div class="stat-row"><span class="stat-label">🛡️ DEF</span><span class="stat-value">${player.totalDef}</span></div>\n            <div class="stat-row"><span class="stat-label">✨ SPD</span><span class="stat-value">${player.totalSpeed}</span></div>\n            <div class="stat-row"><span class="stat-label">💰 GOLD</span><span class="stat-value">${player.gold}</span></div>\n            <div class="stat-row"><span class="stat-label">🎒 背包</span><span class="stat-value">${player.inventory.length}/${player.inventoryLimit}</span></div>\n            <div class="exp-bar-container">\n                <div class="exp-bar" style="width: ${(player.exp / player.nextLevelExp) * 100}%"></div>\n        `;
         this.renderEquipment(player);
         this.renderInventory(player);
+    }
+
+    showFloatingDamage(targetElementId, amount, options = {}) {
+        const el = document.getElementById(targetElementId);
+        if (!el) return;
+        const floatEl = document.createElement('div');
+        floatEl.className = 'damage-float' + (options.isCrit ? ' damage-crit' : '');
+        floatEl.textContent = amount;
+        // 計算絕對位置並放到 body
+        const rect = el.getBoundingClientRect();
+        floatEl.style.position = 'absolute';
+        floatEl.style.left = `${rect.left + rect.width / 2}px`;
+        floatEl.style.top = `${rect.top + rect.height * 0.25}px`;
+        floatEl.style.transform = 'translate(-50%, 0)';
+        document.body.appendChild(floatEl);
+        // 自動移除
+        setTimeout(() => { if (floatEl && floatEl.parentNode) floatEl.parentNode.removeChild(floatEl); }, 900);
+    }
+
+    showStatAllocationModal(player) {
+        if (!player) return;
+        if (document.getElementById('stat-allocation-modal')) return; // 已開啟
+        const modal = document.createElement('div');
+        modal.id = 'stat-allocation-modal';
+        modal.className = 'modal-overlay';
+        const pending = { str: 0, agi: 0, vit: 0, int: 0, dex: 0, luk: 0 };
+
+        const rowFor = (label, key) => `
+            <div class="alloc-row" data-stat="${key}">
+                <div class="alloc-label">${label}</div>
+                <div class="alloc-controls">
+                    <button class="btn btn-danger btn-alloc-minus" data-stat="${key}">-</button>
+                    <span class="alloc-value" data-stat-value="${key}">0</span>
+                    <button class="btn btn-primary btn-alloc-plus" data-stat="${key}">+</button>
+                </div>
+            </div>`;
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3>分配屬性點</h3>
+                <div class="alloc-rows">
+                    ${rowFor('STR', 'str')}
+                    ${rowFor('AGI', 'agi')}
+                    ${rowFor('VIT', 'vit')}
+                    ${rowFor('INT', 'int')}
+                    ${rowFor('DEX', 'dex')}
+                    ${rowFor('LUK', 'luk')}
+                </div>
+                <div class="alloc-remaining">剩餘點數：<span id="alloc-remaining">${player.statPointsAvailable}</span></div>
+                <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
+                    <button class="btn btn-primary" id="alloc-confirm">確認</button>
+                    <button class="btn btn-danger" id="alloc-reset">重置</button>
+                    <button class="btn" id="alloc-cancel">取消</button>
+                </div>
+            </div>`;
+
+        document.body.appendChild(modal);
+
+        function updateRemaining(n) {
+            const el = document.getElementById('alloc-remaining');
+            if (el) el.textContent = n;
+        }
+
+        modal.addEventListener('click', (ev) => {
+            if (ev.target === modal) {
+                modal.remove();
+            }
+        });
+
+        modal.querySelectorAll('.btn-alloc-plus').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.stat;
+                if (Object.values(pending).reduce((a,b)=>a+b,0) >= player.statPointsAvailable) return;
+                pending[key] = (pending[key] || 0) + 1;
+                modal.querySelector(`[data-stat-value="${key}"]`).textContent = pending[key];
+                updateRemaining(player.statPointsAvailable - Object.values(pending).reduce((a,b)=>a+b,0));
+            });
+        });
+
+        modal.querySelectorAll('.btn-alloc-minus').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.stat;
+                if ((pending[key] || 0) <= 0) return;
+                pending[key] = (pending[key] || 0) - 1;
+                modal.querySelector(`[data-stat-value="${key}"]`).textContent = pending[key];
+                updateRemaining(player.statPointsAvailable - Object.values(pending).reduce((a,b)=>a+b,0));
+            });
+        });
+
+        const confirmBtn = modal.querySelector('#alloc-confirm');
+        const resetBtn = modal.querySelector('#alloc-reset');
+        const cancelBtn = modal.querySelector('#alloc-cancel');
+
+        resetBtn.addEventListener('click', () => {
+            Object.keys(pending).forEach(k => { pending[k] = 0; modal.querySelector(`[data-stat-value="${k}"]`).textContent = '0'; });
+            updateRemaining(player.statPointsAvailable);
+        });
+
+        cancelBtn.addEventListener('click', () => modal.remove());
+
+        confirmBtn.addEventListener('click', () => {
+            const success = player.applyAllocation(pending);
+            if (!success) {
+                alert('分配失敗：剩餘點數不足');
+                return;
+            }
+            modal.remove();
+            this.updatePlayerPanel(player);
+        });
     }
 
     renderEquipment(player) {

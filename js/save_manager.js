@@ -19,6 +19,14 @@ export class SaveManager {
             gold: player.gold,
             inventory: player.inventory,
             equipment: player.equipment,
+            // 屬性與分配點數
+            str: player.str,
+            agi: player.agi,
+            vit: player.vit,
+            int: player.int,
+            dex: player.dex,
+            luk: player.luk,
+            statPointsAvailable: player.statPointsAvailable,
             // 將任何額外 meta 加入儲存物件（例如 wave）
             ...meta
         };

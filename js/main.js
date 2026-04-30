@@ -1,8 +1,9 @@
-import { CLASSES, ITEMS } from './data.js?version=1.0.0';
-import { Player } from './player.js?version=1.0.0';
-import { BattleEngine } from './battle.js?version=1.0.0';
-import { UIManager } from './ui.js?version=1.0.0';
-import { SaveManager } from './save_manager.js?version=1.0.0';
+import { CLASSES, ITEMS } from './data.js?version=1.0.1';
+import { Player } from './player.js?version=1.0.1';
+import { BattleEngine } from './battle.js?version=1.0.1';
+import { UIManager } from './ui.js?version=1.0.1';
+import { SaveManager } from './save_manager.js?version=1.0.1';
+import { POINTS_PER_LEVEL } from './stats_config.js?version=1.0.1';
 
 class Game {
     constructor() {
@@ -135,6 +136,21 @@ class Game {
                     this.ui.showScene('game');
                     if (this.player) this.updateMainUI();
                     break;
+                case 'btn-restart':
+                    // 使用者確認後清除本地存檔並重載遊戲
+                    try {
+                        if (confirm('確認要重新開始嗎？這會清除所有本地存檔並重新載入遊戲。')) {
+                            SaveManager.clear();
+                            // 小幅延遲以確保本地存檔已被移除
+                            setTimeout(() => location.reload(), 120);
+                        }
+                    } catch (e) {
+                        console.error('重新開始時發生錯誤', e);
+                    }
+                    break;
+                case 'btn-open-allocate':
+                    if (this.player) this.ui.showStatAllocationModal(this.player);
+                    break;
                 case 'btn-toggle-player-info':
                     this.ui.togglePanel('player-info');
                     break;
@@ -161,6 +177,19 @@ class Game {
                     break;
             }
         });
+
+        // 支援按住持續攻擊（pointer 事件）
+        const attackBtn = document.getElementById('btn-action-attack');
+        if (attackBtn) {
+            attackBtn.addEventListener('pointerdown', (e) => {
+                if (e.preventDefault) e.preventDefault();
+                if (this.battle) this.battle.playerAutoAttacking = true;
+            });
+            const stopAttack = () => { if (this.battle) this.battle.playerAutoAttacking = false; };
+            attackBtn.addEventListener('pointerup', stopAttack);
+            attackBtn.addEventListener('pointerleave', stopAttack);
+            attackBtn.addEventListener('pointercancel', stopAttack);
+        }
     }
 
     handlePurchaseAction(item) {
@@ -285,7 +314,29 @@ class Game {
                     }))
                 });
 
-                this.player = loadedPlayer;
+                    // 如果舊存檔沒有屬性欄位，給予自由分配點數作為補償
+                    const hasSavedStats = (typeof savedData.str !== 'undefined') && (typeof savedData.agi !== 'undefined') && (typeof savedData.vit !== 'undefined') && (typeof savedData.int !== 'undefined') && (typeof savedData.dex !== 'undefined') && (typeof savedData.luk !== 'undefined');
+                    if (hasSavedStats) {
+                        // 恢復屬性（若存在）與剩餘點數
+                        loadedPlayer.str = typeof savedData.str !== 'undefined' ? savedData.str : loadedPlayer.str;
+                        loadedPlayer.agi = typeof savedData.agi !== 'undefined' ? savedData.agi : loadedPlayer.agi;
+                        loadedPlayer.vit = typeof savedData.vit !== 'undefined' ? savedData.vit : loadedPlayer.vit;
+                        loadedPlayer.int = typeof savedData.int !== 'undefined' ? savedData.int : loadedPlayer.int;
+                        loadedPlayer.dex = typeof savedData.dex !== 'undefined' ? savedData.dex : loadedPlayer.dex;
+                        loadedPlayer.luk = typeof savedData.luk !== 'undefined' ? savedData.luk : loadedPlayer.luk;
+                        loadedPlayer.statPointsAvailable = typeof savedData.statPointsAvailable !== 'undefined' ? savedData.statPointsAvailable : 0;
+                    } else {
+                        // 舊存檔：沒有素質資料，將所有素質設為 0 並給予補償點數
+                        loadedPlayer.str = 0;
+                        loadedPlayer.agi = 0;
+                        loadedPlayer.vit = 0;
+                        loadedPlayer.int = 0;
+                        loadedPlayer.dex = 0;
+                        loadedPlayer.luk = 0;
+                        loadedPlayer.statPointsAvailable = 30 + (loadedPlayer.level * POINTS_PER_LEVEL);
+                    }
+
+                    this.player = loadedPlayer;
                 console.log("玩家實例重建成功:", this.player);
 
                 // 復原波數（如有）
