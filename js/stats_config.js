@@ -19,6 +19,16 @@ export const STAT_COEFFICIENTS = {
     EQUIP_SPEED_MS: 8 // 每點裝備 speed 折算的 ms
 };
 
+// 防禦縮放參數：用於計算比例化減傷（實際傷害 = incoming * (DEF_SCALE / (DEF_SCALE + totalDef)))
+export const DEFENSE_CONFIG = {
+    DEF_SCALE: 100
+};
+
+// 攻擊縮放參數：用於計算攻擊 vs 防禦的比例化傷害
+export const ATTACK_CONFIG = {
+    ATK_SCALE: 50
+};
+
 export const DEFAULT_CLASS_STATS = {
     warrior: { str: 8, agi: 4, vit: 8, int: 2, dex: 3, luk: 2 },
     mage:    { str: 2, agi: 4, vit: 3, int:10, dex: 5, luk: 2 },

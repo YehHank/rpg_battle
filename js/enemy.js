@@ -1,4 +1,4 @@
-import { MONSTER_TYPES } from './data.js?version=1.0.3';
+import { MONSTER_TYPES } from './data.js?version=1.0.4';
 
 export class Enemy {
     constructor(typeIndex) {

@@ -1,5 +1,5 @@
-import { CLASSES } from './data.js?version=1.0.3';
-import { POINTS_PER_LEVEL, STAT_COEFFICIENTS, DEFAULT_CLASS_STATS } from './stats_config.js?version=1.0.3';
+import { CLASSES } from './data.js?version=1.0.4';
+import { POINTS_PER_LEVEL, STAT_COEFFICIENTS, DEFAULT_CLASS_STATS, DEFENSE_CONFIG } from './stats_config.js?version=1.0.4';
 
 export class Player {
     constructor(name, classKey) {
@@ -207,7 +207,12 @@ export class Player {
             this._notifyChange();
             return 0;
         }
-        const actualDamage = Math.max(1, amount - this.totalDef);
+        const incoming = Math.max(0, Number(amount) || 0);
+        const def = Math.max(0, Number(this.totalDef) || 0);
+        const defScale = (DEFENSE_CONFIG && DEFENSE_CONFIG.DEF_SCALE) ? DEFENSE_CONFIG.DEF_SCALE : 100;
+        // 比例化減傷：實際傷害 = incoming * (defScale / (defScale + def))
+        const reductionFactor = defScale / (defScale + def);
+        const actualDamage = Math.max(1, Math.floor(incoming * reductionFactor));
         this.hp = Math.max(0, this.hp - actualDamage);
         this._notifyChange();
         return actualDamage;

@@ -1,4 +1,4 @@
-import { ITEMS, RARITY } from './data.js';
+import { ITEMS, RARITY } from './data.js?version=1.0.4';
 
 // 根據稀有度決定屬性浮動幅度（越稀有，浮動越小）
 const RARITY_VARIANCE = {
@@ -72,11 +72,19 @@ function rollValue(base, variance) {
     return Math.max(0, Math.round(base * factor));
 }
 
+// 每等級物品屬性放大百分比（指數成長）
+// 公式：scaleMultiplier = (1 + ITEM_LEVEL_SCALE)^(level-1)
+// 預設 0.03 表示每等級約 +3% 的指數成長（level 86 時約 x10.1）
+const ITEM_LEVEL_SCALE = 0.035;
+
 // 產生 item template 的實例（會加入 instanceId 與浮動屬性）
-export function rollItemInstance(template) {
+// opts: { level }
+export function rollItemInstance(template, opts = {}) {
     if (!template) return null;
     const rarity = template.rarity || 'common';
     const variance = varianceForRarity(rarity);
+    const level = Math.max(1, Number(opts.level) || 1);
+    const scaleMultiplier = Math.pow(1 + ITEM_LEVEL_SCALE, level - 1);
 
     // 深拷貝 template
     const inst = JSON.parse(JSON.stringify(template));
@@ -85,14 +93,15 @@ export function rollItemInstance(template) {
     // 將 instanceId 設為 id，方便 UI 與儲存識別
     inst.id = inst.instanceId;
 
-    // 對已知的數值屬性進行浮動（atk, def, speed, price）
-    if (typeof inst.atk === 'number') inst.atk = rollValue(inst.atk, variance);
-    if (typeof inst.def === 'number') inst.def = rollValue(inst.def, variance);
-    if (typeof inst.speed === 'number') inst.speed = rollValue(inst.speed, variance);
-    // 價格稍微隨屬性浮動（最多 ±10%）
+    // 先根據等級放大基礎值，再套入浮動
+    if (typeof inst.atk === 'number') inst.atk = rollValue(Math.max(0, Math.round(inst.atk * scaleMultiplier)), variance);
+    if (typeof inst.def === 'number') inst.def = rollValue(Math.max(0, Math.round(inst.def * scaleMultiplier)), variance);
+    if (typeof inst.speed === 'number') inst.speed = rollValue(Math.max(0, Math.round(inst.speed * scaleMultiplier)), variance);
+    // 價格稍微隨屬性浮動（最多 ±10%），也放大
     if (typeof inst.price === 'number') {
+        const priceBase = Math.max(1, Math.round(inst.price * scaleMultiplier));
         const priceVariance = Math.min(0.10, variance * 0.6);
-        inst.price = Math.max(1, Math.round(inst.price * (1 + randBetween(-priceVariance, priceVariance))));
+        inst.price = Math.max(1, Math.round(priceBase * (1 + randBetween(-priceVariance, priceVariance))));
     }
 
     // 決定是否加入修飾詞（有機率 0/1/2 個），修飾詞不再限制於物品稀有度

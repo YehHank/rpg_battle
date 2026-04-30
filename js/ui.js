@@ -1,5 +1,5 @@
-import { ITEMS, RARITY } from './data.js?version=1.0.3';
-import { generateShopVariants } from './item_factory.js?version=1.0.3';
+import { ITEMS, RARITY, MAPS } from './data.js?version=1.0.4';
+import { generateShopVariants } from './item_factory.js?version=1.0.4';
 
 export class UIManager {
     constructor() {
@@ -398,5 +398,74 @@ export class UIManager {
     togglePanel(panelId) {
         const panel = document.getElementById(panelId);
         if (panel) panel.classList.toggle('expanded');
+    }
+
+    // 顯示戰鬥模式選單（試煉塔 / 地圖刷怪）
+    showBattleModeSelection(gameInstance) {
+        if (document.getElementById('battle-mode-modal')) return;
+        const modal = document.createElement('div');
+        modal.id = 'battle-mode-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3>選擇戰鬥模式</h3>
+                <div style="display:flex; gap:10px; justify-content:center; margin-top:12px;">
+                    <button class="btn btn-primary" id="btn-mode-tower">🗼 試煉塔</button>
+                    <button class="btn" id="btn-mode-map">🌍 地圖刷怪</button>
+                </div>
+                <div style="margin-top:12px; text-align:center;"><button class="btn" id="btn-mode-cancel">取消</button></div>
+            </div>`;
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', (ev) => { if (ev.target === modal) modal.remove(); });
+
+        modal.querySelector('#btn-mode-cancel').addEventListener('click', () => modal.remove());
+        modal.querySelector('#btn-mode-tower').addEventListener('click', () => {
+            modal.remove();
+            if (gameInstance && typeof gameInstance.startTowerBattle === 'function') gameInstance.startTowerBattle();
+        });
+        modal.querySelector('#btn-mode-map').addEventListener('click', () => {
+            modal.remove();
+            this.showMapSelectionModal(gameInstance);
+        });
+    }
+
+    // 顯示地圖選擇器（列出 MAPS）
+    showMapSelectionModal(gameInstance) {
+        if (document.getElementById('map-selection-modal')) return;
+        const modal = document.createElement('div');
+        modal.id = 'map-selection-modal';
+        modal.className = 'modal-overlay';
+        let listHtml = '';
+        MAPS.forEach(m => {
+            listHtml += `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03);">
+                <div>
+                    <div style="font-weight:bold">${m.name}</div>
+                    <div style="font-size:12px; color:#a0a0a0;">等級 ${m.min} ~ ${m.max === Infinity ? '無上限' : m.max}</div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-primary btn-start-map" data-map-key="${m.key}">開始挑戰</button>
+                </div>
+            </div>`;
+        });
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3>選擇地圖</h3>
+                <div style="max-height:320px; overflow:auto; margin-top:8px;">${listHtml}</div>
+                <div style="margin-top:12px; text-align:center;"><button class="btn" id="btn-map-cancel">取消</button></div>
+            </div>`;
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', (ev) => { if (ev.target === modal) modal.remove(); });
+        modal.querySelector('#btn-map-cancel').addEventListener('click', () => modal.remove());
+
+        modal.querySelectorAll('.btn-start-map').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mapKey = btn.dataset.mapKey;
+                modal.remove();
+                if (gameInstance && typeof gameInstance.startMapBattle === 'function') gameInstance.startMapBattle(mapKey);
+            });
+        });
     }
 }

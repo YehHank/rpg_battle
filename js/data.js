@@ -196,3 +196,53 @@ export const MONSTER_TYPES = [
     { name: '魔王', icon: '👿', hp: 1200, atk: 90, speed: 15, exp: 600, gold: 400, dropRate: 0.55, drops: ['staff_05', 'helm_05', 'accessory_05'] },
     { name: '神話盜魁', icon: '🎭', hp: 900, atk: 85, speed: 30, exp: 550, gold: 350, dropRate: 0.50, drops: ['dagger_05', 'shoes_05'] }
 ];
+
+// --- 新增高等區域怪物（51+） ---
+MONSTER_TYPES.push(
+    // 深淵區域 (51-70)
+    { name: '深淵巡行者', icon: '🌊', hp: 1400, atk: 95, speed: 22, exp: 700, gold: 400, dropRate: 0.40, drops: ['sword_04', 'accessory_04', 'shield_04'] },
+    { name: '腐化巨像', icon: '🗿', hp: 2200, atk: 110, speed: 8, exp: 900, gold: 500, dropRate: 0.45, drops: ['armor_04', 'helm_04'] },
+    { name: '噬魂狼王', icon: '🐺', hp: 1200, atk: 100, speed: 28, exp: 750, gold: 420, dropRate: 0.42, drops: ['dagger_04', 'shoes_04'] },
+
+    // 虛空區域 (71-85)
+    { name: '虛無騎士', icon: '⚔️', hp: 3000, atk: 130, speed: 25, exp: 1200, gold: 800, dropRate: 0.50, drops: ['sword_05', 'armor_05'] },
+    { name: '寂滅女巫', icon: '🪄', hp: 2600, atk: 140, speed: 22, exp: 1300, gold: 850, dropRate: 0.55, drops: ['staff_05', 'accessory_05'] },
+
+    // 天界 / 終章區域 (86+)
+    { name: '天界守衛', icon: '👼', hp: 5000, atk: 160, speed: 30, exp: 2000, gold: 1500, dropRate: 0.60, drops: ['helm_05', 'accessory_05'] },
+    { name: '終焉龍王', icon: '🐲', hp: 8000, atk: 220, speed: 20, exp: 5000, gold: 3000, dropRate: 0.70, drops: ['sword_05', 'armor_05', 'shield_05'] },
+    { name: '虛空終結者', icon: '🌌', hp: 6500, atk: 180, speed: 28, exp: 3200, gold: 1800, dropRate: 0.65, drops: ['dagger_05', 'staff_05'] }
+);
+
+// 提供依照波數（wave, 0-based）挑選怪物的工具函式
+// 地圖/區域定義 (可擴充)
+export const MAPS = [
+    { key: 'village', name: '新手村', min: 1, max: 5, indices: [0,1,2] },
+    { key: 'forest', name: '森林區域', min: 6, max: 15, indices: [3,4,5] },
+    { key: 'cave', name: '洞穴區域', min: 16, max: 30, indices: [6,7,8] },
+    { key: 'dungeon', name: '地下城', min: 31, max: 50, indices: [9,10,11] },
+    { key: 'abyss', name: '深淵', min: 51, max: 70, indices: [12,13,14] },
+    { key: 'void', name: '虛空', min: 71, max: 85, indices: [15,16] },
+    { key: 'heaven', name: '天界', min: 86, max: Infinity, indices: [17,18,19] }
+];
+
+export function getMonsterTemplateForWave(wave) {
+    const level = Math.max(1, (Number(wave) || 0) + 1);
+    const pool = MAPS.find(p => level >= p.min && level <= p.max) || MAPS[0];
+    const indices = (pool.indices || []).filter(i => i >= 0 && i < MONSTER_TYPES.length);
+    let chosenIndex;
+    if (indices.length > 0) {
+        chosenIndex = indices[Math.floor(Math.random() * indices.length)];
+    } else {
+        chosenIndex = Math.floor(Math.random() * MONSTER_TYPES.length);
+    }
+    return { ...MONSTER_TYPES[chosenIndex] };
+}
+
+export function getRandomMonsterFromMap(mapKey) {
+    const map = MAPS.find(m => m.key === mapKey) || MAPS[0];
+    const indices = (map.indices || []).filter(i => i >= 0 && i < MONSTER_TYPES.length);
+    if (indices.length === 0) return { ...MONSTER_TYPES[Math.floor(Math.random() * MONSTER_TYPES.length)] };
+    const idx = indices[Math.floor(Math.random() * indices.length)];
+    return { ...MONSTER_TYPES[idx] };
+}

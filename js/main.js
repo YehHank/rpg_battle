@@ -1,9 +1,9 @@
-import { CLASSES, ITEMS } from './data.js?version=1.0.3';
-import { Player } from './player.js?version=1.0.3';
-import { BattleEngine } from './battle.js?version=1.0.3';
-import { UIManager } from './ui.js?version=1.0.3';
-import { SaveManager } from './save_manager.js?version=1.0.3';
-import { POINTS_PER_LEVEL } from './stats_config.js?version=1.0.3';
+import { CLASSES, ITEMS } from './data.js?version=1.0.4';
+import { Player } from './player.js?version=1.0.4';
+import { BattleEngine } from './battle.js?version=1.0.4';
+import { UIManager } from './ui.js?version=1.0.4';
+import { SaveManager } from './save_manager.js?version=1.0.4';
+import { POINTS_PER_LEVEL } from './stats_config.js?version=1.0.4';
 
 class Game {
     constructor() {
@@ -132,7 +132,8 @@ class Game {
                     break;
                 case 'btn-start-adventure-main':
                 case 'btn-go-training':
-                    await this.handleTraining();
+                    // 顯示戰鬥模式選單（試煉塔或地圖刷怪）
+                    if (this.player) this.ui.showBattleModeSelection(this);
                     break;
                 case 'btn-go-shop':
                     if (this.player) {
@@ -395,21 +396,27 @@ class Game {
         });
     }
 
-    async handleTraining() {
+    // 啟動試煉塔（以 wave 作為塔層）
+    async startTowerBattle() {
         if (!this.player) return;
-        console.log(`啟動第 ${this.wave + 1} 波戰鬥...`);
+        console.log(`啟動試煉塔 第 ${this.wave + 1} 層...`);
         this.ui.showScene('battle');
-        // 等待戰鬥結束並取得結果（true = 勝利, false = 戰敗）
-        const result = await this.battle.startBattle(this.wave, this);
-
-        // 勝利：前進波數；戰敗：退回一層（最少為 1）
+        const result = await this.battle.startBattle(this.wave, this, { mode: 'tower' });
         if (result) {
             this.wave++;
         } else {
             this.wave = Math.max(1, this.wave - 1);
         }
+        SaveManager.save(this.player, { wave: this.wave });
+    }
 
-        // 儲存波數到存檔中
+    // 在選定地圖上開始一次刷怪（單次），可重複由使用者再次啟動
+    async startMapBattle(mapKey) {
+        if (!this.player) return;
+        console.log(`開始地圖刷怪：${mapKey}`);
+        this.ui.showScene('battle');
+        const result = await this.battle.startBattle(this.wave, this, { mode: 'map', mapKey });
+        // 地圖戰鬥不改變塔層（wave），僅給予獎勵。結果返回後回到地圖選單或主畫面。
         SaveManager.save(this.player, { wave: this.wave });
     }
 
