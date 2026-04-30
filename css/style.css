@@ -167,6 +167,9 @@ h3 {
     border-bottom: 2px solid #4a90d9;
 }
 
+/* 導航列（面板底部按鈕） */
+.nav-bar { display:flex; justify-content:center; align-items:center; padding-top:10px; }
+
 /* 屬性顯示 */
 .stat-row {
     display: flex;
@@ -248,6 +251,22 @@ h3 {
 
 .shop-right .shop-title { color: #4a90d9; }
 .shop-items-list { display: flex; flex-direction: column; gap: 10px; }
+
+/* 在商店的「我的物品」容器中，使用與精選商品相同的垂直佈局
+   避免商品在右側被壓縮成多欄或過於擁擠 */
+#shop-inventory-container > .inventory-grid,
+.shop-right > #shop-inventory-container > .inventory-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* 確保每個物品列滿寬並有一致間距 */
+#shop-inventory-container .inventory-item,
+.shop-right #shop-inventory-container .inventory-item {
+    width: 100%;
+    box-sizing: border-box;
+}
 
 /* 商店欄位最大高度以避免整頁過長，並在小螢幕縮短 */
 .shop-column { max-height: calc(70vh - 120px); }
@@ -592,33 +611,6 @@ h3 {
     animation: shake 0.3s ease;
 }
 
-/* TIP (燈泡提示) */
-.tip-icon {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    font-size: 28px;
-    cursor: pointer;
-    z-index: 100;
-}
-
-.tip-bubble {
-    position: absolute;
-    bottom: 50px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #ffd700;
-    color: #1a1a2e;
-    padding: 12px 20px;
-    border-radius: 20px;
-    z-index: 101;
-    display: none;
-}
-
-.tip-bubble.show {
-    display: block;
-}
-
 /* ------------------
    Responsive (RWD)
    ------------------ */
@@ -664,9 +656,7 @@ h3 {
     .inventory-grid { grid-template-columns: repeat(3, 1fr); }
     .class-icon { font-size: 40px; }
 
-    /* 提示按鈕位置適應 */
-    .tip-icon { right: 12px; bottom: 12px; font-size: 24px; }
-    .tip-bubble { left: 12px; right: 12px; transform: none; bottom: 56px; }
+    /* 位置調整區（保留其他回饋用） */
 }
 
 /* 極小螢幕優化 (小手機) */
@@ -733,4 +723,15 @@ h3 {
 .alloc-controls { display:flex; gap:8px; align-items:center; }
 .alloc-value { min-width:28px; display:inline-block; text-align:center; font-weight:700; color:#ffd700; }
 .alloc-remaining { margin-top:10px; color:#a0a0a0; }
+
+/* 遊戲標題旁的齒輪選單 */
+.game-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+.game-settings { position: relative; }
+.icon-btn { background: transparent; border: none; color: #e0e0e0; font-size: 18px; padding: 6px; border-radius: 6px; cursor: pointer; }
+.icon-btn:focus { outline: 2px solid #4a90d9; }
+.game-menu { position: absolute; right: 0; top: calc(100% + 8px); background: #0f1220; border: 1px solid #2a2a4e; padding: 6px; border-radius: 8px; min-width: 160px; box-shadow: 0 8px 20px rgba(0,0,0,0.45); z-index: 12000; display: none; }
+.game-menu.show { display: block; }
+.game-menu .menu-item { display: block; width: 100%; text-align: left; background: transparent; color: #ffffff; padding: 8px 10px; border: none; cursor: pointer; border-radius: 6px; }
+.game-menu .menu-item:hover { background: rgba(255,255,255,0.03); }
+
 

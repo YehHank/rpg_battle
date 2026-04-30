@@ -354,7 +354,4 @@ export class UIManager {
         const panel = document.getElementById(panelId);
         if (panel) panel.classList.toggle('expanded');
     }
-
-    showTip() {}
-    hideTip() {}
 }

@@ -136,18 +136,7 @@ class Game {
                     this.ui.showScene('game');
                     if (this.player) this.updateMainUI();
                     break;
-                case 'btn-restart':
-                    // 使用者確認後清除本地存檔並重載遊戲
-                    try {
-                        if (confirm('確認要重新開始嗎？這會清除所有本地存檔並重新載入遊戲。')) {
-                            SaveManager.clear();
-                            // 小幅延遲以確保本地存檔已被移除
-                            setTimeout(() => location.reload(), 120);
-                        }
-                    } catch (e) {
-                        console.error('重新開始時發生錯誤', e);
-                    }
-                    break;
+                // btn-restart 已移除（採用浮動按鈕 btn-restart-floating）
                 case 'btn-open-allocate':
                     if (this.player) this.ui.showStatAllocationModal(this.player);
                     break;
@@ -169,12 +158,7 @@ class Game {
                 case 'btn-action-flee':
                     if (this.battle) this.battle.handleAction('flee');
                     break;
-                case 'tip-icon':
-                    this.ui.showTip();
-                    break;
-                case 'tip-close':
-                    this.ui.hideTip();
-                    break;
+                // TIP 功能已停用，相關元素與事件已移除
             }
         });
 
@@ -189,6 +173,44 @@ class Game {
             attackBtn.addEventListener('pointerup', stopAttack);
             attackBtn.addEventListener('pointerleave', stopAttack);
             attackBtn.addEventListener('pointercancel', stopAttack);
+        }
+
+        // 齒輪選單綁定（包含重置選項）
+        const gameMenuBtn = document.getElementById('btn-game-menu');
+        const gameMenu = document.getElementById('game-menu');
+        const menuReset = document.getElementById('menu-reset-game');
+
+        if (gameMenuBtn && gameMenu) {
+            // 點齒輪：切換選單顯示
+            gameMenuBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const isShown = gameMenu.classList.toggle('show');
+                gameMenuBtn.setAttribute('aria-expanded', isShown ? 'true' : 'false');
+                if (!isShown) gameMenu.hidden = true; else gameMenu.hidden = false;
+            });
+
+            // 點擊頁面任意處關閉選單
+            document.addEventListener('click', (ev) => {
+                if (!gameMenu.contains(ev.target) && ev.target !== gameMenuBtn) {
+                    gameMenu.classList.remove('show');
+                    gameMenuBtn.setAttribute('aria-expanded', 'false');
+                    gameMenu.hidden = true;
+                }
+            });
+        }
+
+        if (menuReset) {
+            menuReset.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                try {
+                    if (confirm('確認要重新開始嗎？這會清除所有本地存檔並重新載入遊戲。')) {
+                        SaveManager.clear();
+                        setTimeout(() => location.reload(), 120);
+                    }
+                } catch (e) {
+                    console.error('重新開始時發生錯誤', e);
+                }
+            });
         }
     }
 

@@ -8,14 +8,6 @@
 </head>
 <body>
     <div id="game-container">
-        <!-- 燈泡 TIP 圖示 -->
-        <div class="tip-icon" id="tip-icon">💡</div>
-
-        <!-- 燈泡 TIP 提示 -->
-        <div class="tip-bubble" id="tip-bubble">
-            <div class="tip-close" id="tip-close">✕</div>
-            <div id="tip-content"></div>
-        </div>
 
         <!-- 職業選擇場景 -->
         <div id="scene-class-select" class="scene active">
@@ -43,8 +35,16 @@
 
         <!-- 主遊戲場景 -->
         <div id="scene-game" class="scene">
-            <h2 id="game-title">勇者養成戰記</h2>
-            <div class="main-layout">
+            <div class="game-header">
+                <h2 id="game-title">勇者養成戰記</h2>
+                <div class="game-settings">
+                    <button id="btn-game-menu" class="icon-btn" aria-haspopup="true" aria-expanded="false" title="遊戲選單">⚙️</button>
+                    <div id="game-menu" class="game-menu" hidden>
+                        <button class="menu-item" id="menu-reset-game">重置遊戲</button>
+                    </div>
+                </div>
+            </div>
+                <div class="main-layout">
                 <!-- 左側：角色資訊 -->
                 <div class="panel collapsible-panel">
                     <div class="panel-title collapsible-header" id="btn-toggle-player-info">
@@ -53,7 +53,6 @@
                     <div class="collapsible-content" id="player-info"></div>
                     <div class="nav-bar">
                         <button class="btn" id="btn-go-shop">商店</button>
-                        <button class="btn btn-danger" id="btn-restart" title="清除存檔並重新開始遊戲">重新開始</button>
                     </div>
                 </div>
 
@@ -140,6 +139,6 @@
     </div>
 
     <!-- 引入模組化 JS -->
-    <script type="module" src="js/main.js?version=1.0.1"></script>
+    <script type="module" src="js/main.js?version=1.0.0"></script>
 </body>
 </html>
