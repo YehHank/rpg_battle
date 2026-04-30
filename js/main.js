@@ -102,16 +102,26 @@ class Game {
             }
 
             if (target.classList.contains('btn-buy-item')) {
+                // 支援商店變體（data-variant-id）或舊式 data-item-key
+                const variantId = target.dataset.variantId;
+                if (variantId && this.ui && typeof this.ui.getShopVariant === 'function') {
+                    const variantItem = this.ui.getShopVariant(variantId);
+                    if (variantItem) {
+                        this.handlePurchaseAction(variantItem);
+                        return;
+                    }
+                }
+
                 const itemKey = target.dataset.itemKey;
                 const item = ITEMS[itemKey];
                 if (item) this.handlePurchaseAction(item);
                 return;
             }
 
-            // 處理販售按鈕
+            // 處理販售按鈕（支援 instanceId 或 舊的 itemKey）
             if (target.classList.contains('btn-sell-item')) {
-                const itemKey = target.dataset.itemKey;
-                this.handleSellAction(itemKey);
+                const instanceId = target.dataset.instanceId || target.dataset.itemKey;
+                this.handleSellAction(instanceId);
                 return;
             }
 
@@ -239,21 +249,23 @@ class Game {
             return;
         }
 
-        const item = ITEMS[itemKey];
-        if (!item) {
-            console.error("❌ 販售失敗：找不到物品", itemKey);
+        // 允許傳入 instanceId 或 base id
+        const key = itemKey;
+        if (!key) {
+            console.error("❌ 販售失敗：未指定物品識別碼");
             return;
         }
 
-        // 檢查玩家是否擁有該物品
-        const index = this.player.inventory.findIndex(i => i.id === itemKey);
+        const index = this.player.inventory.findIndex(i => i.instanceId === key || i.id === key || i.baseId === key || i.id === key || i.name === key);
         if (index === -1) {
-            console.error("❌ 販售失敗：玩家沒有此物品");
+            console.error("❌ 販售失敗：玩家沒有此物品", key);
             return;
         }
 
-        // 販售：將物品從背包移除，並獲得金幣（售價為原價的 50%）
-        const sellPrice = Math.floor(item.price * 0.5);
+        const item = this.player.inventory[index];
+        const basePrice = (typeof item.price === 'number') ? item.price : (ITEMS[item.baseId || item.id]?.price || 0);
+        const sellPrice = Math.max(0, Math.floor(basePrice * 0.5));
+        // 將物品從背包移除並給予金幣
         this.player.inventory.splice(index, 1);
         this.player.gold += sellPrice;
         console.log(`成功販售: ${item.name}，獲得 ${sellPrice} 金幣`);

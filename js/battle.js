@@ -1,4 +1,5 @@
 import { MONSTER_TYPES, ITEMS } from './data.js';
+import { rollItemInstance } from './item_factory.js';
 
 export class BattleEngine {
     constructor(player, ui) {
@@ -263,15 +264,15 @@ export class BattleEngine {
         // 隨機決定掉落哪些物品
         this.enemy.drops.forEach(itemKey => {
             if (Math.random() < this.enemy.dropRate) {
-                const item = ITEMS[itemKey];
-                if (item && !this.player.inventory.find(i => i.id === itemKey)) {
-                    // 複製物品物件，避免修改原始資料
-                    const newItem = { ...item };
+                const template = ITEMS[itemKey];
+                if (template) {
+                    // 產生浮動屬性的實例物品
+                    const newItem = rollItemInstance(template) || { ...template };
                     const added = this.player.addItem(newItem);
                     if (added) {
-                        this.ui.logCombat(`🎁 掉落物品：${item.icon} ${item.name}！`, 'system');
+                        this.ui.logCombat(`🎁 掉落物品：${template.icon} ${template.name}！`, 'system');
                     } else {
-                        this.ui.logCombat(`🎁 掉落物品：${item.icon} ${item.name}，但背包已滿無法拾取。`, 'error');
+                        this.ui.logCombat(`🎁 掉落物品：${template.icon} ${template.name}，但背包已滿無法拾取。`, 'error');
                     }
                 }
             }

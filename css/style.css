@@ -252,6 +252,14 @@ h3 {
 .shop-right .shop-title { color: #4a90d9; }
 .shop-items-list { display: flex; flex-direction: column; gap: 10px; }
 
+.shop-group-title {
+    font-size: 14px;
+    color: #ffd700;
+    margin: 12px 0 8px 0;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,215,0,0.06);
+}
+
 /* 在商店的「我的物品」容器中，使用與精選商品相同的垂直佈局
    避免商品在右側被壓縮成多欄或過於擁擠 */
 #shop-inventory-container > .inventory-grid,

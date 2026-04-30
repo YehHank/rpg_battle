@@ -1,4 +1,5 @@
 import { ITEMS, RARITY } from './data.js';
+import { generateShopVariants } from './item_factory.js';
 
 export class UIManager {
     constructor() {
@@ -9,6 +10,8 @@ export class UIManager {
         this.enemyHpBar = document.getElementById('enemy-hp-bar');
         this.enemyHpText = document.getElementById('enemy-hp-text');
         this.battleActions = document.getElementById('battle-actions');
+        // 商店中目前顯示的變體快取（variantId -> itemInstance）
+        this.currentShopVariants = {};
     }
 
     showScene(sceneId) {
@@ -220,33 +223,75 @@ export class UIManager {
         container.innerHTML = ''; 
         if (!activePlayer) return;
 
-        Object.keys(ITEMS).forEach(itemKey => {
-            const item = ITEMS[itemKey];
-            const priceText = (item.price !== undefined) ? `${item.price} 金幣` : '--';
-            const rarityColor = item.rarity ? RARITY[item.rarity]?.color || '#ffffff' : '#ffffff';
-            const rarityName = item.rarity ? RARITY[item.rarity]?.name || item.rarity : '';
-            const badgeHtml = (item.rarity && item.rarity !== 'common') ? `<div class="rarity-badge small" style="background:${rarityColor}; color:#fff; margin-right:8px;">${rarityName}</div>` : `<div class="rarity-badge small common" style="margin-right:8px;">${rarityName || '普通'}</div>`;
+        // 清空快取
+        this.currentShopVariants = {};
 
-            const shopItemEl = document.createElement('div');
-            shopItemEl.className = 'shop-item';
-            if (item.rarity && item.rarity !== 'common') {
-                shopItemEl.style.borderColor = rarityColor;
-            }
-            shopItemEl.innerHTML = `\n                <div style="display:flex; align-items:center; gap:10px;">${badgeHtml}<div style="font-size: 24px;">${item.icon}</div></div>\n                <div style="flex: 1; margin-left: 10px;">\n                    <div style="font-weight: bold; color: ${rarityColor};">${item.name}</div>\n                    <div style="font-size: 12px; color: #ffd700;">💰 ${priceText}</div>\n                </div>\n                <button class="btn btn-primary btn-buy-item" data-item-key="${itemKey}" style="padding: 5px 10px; font-size: 12px;">購買</button>\n            `;
-            // 插入屬性顯示（若有）下方
-            const shopStats = [];
-            if (typeof item.atk === 'number') shopStats.push(`⚔️ +${item.atk} ATK`);
-            if (typeof item.def === 'number') shopStats.push(`🛡️ +${item.def} DEF`);
-            if (typeof item.speed === 'number') shopStats.push(`💨 +${item.speed} SPD`);
-            if (shopStats.length) {
-                const statRow = `<div style="font-size:12px; color:#a0a0a0; margin-top:6px;">${shopStats.join('  ')}</div>`;
-                // 在插入到 DOM 前補上屬性行
-                shopItemEl.innerHTML = shopItemEl.innerHTML.replace('</div>\n                <button', `</div>${statRow}\n                <button`);
-            }
-            container.appendChild(shopItemEl);
+        // 先按照 type 分組（並跳過神話等級在商店上架）
+        const groups = {};
+        const typeOrder = ['weapon', 'armor', 'helm', 'shoes', 'shield', 'accessory', 'other'];
+        const typeLabels = { weapon: '武器', armor: '胸甲', helm: '頭盔', shoes: '鞋子', shield: '盾牌', accessory: '飾品', other: '其他' };
+
+        Object.keys(ITEMS).forEach(itemKey => {
+            const template = ITEMS[itemKey];
+            if (!template) return;
+            // 神話等級不在商店上架，僅能怪物掉落
+            if (template.rarity === 'legendary') return;
+
+            const variants = generateShopVariants(itemKey, 1);
+            variants.forEach(variant => {
+                if (!variant) return;
+                const type = variant.type || template.type || 'other';
+                if (!groups[type]) groups[type] = [];
+                groups[type].push(variant);
+                if (variant.instanceId) this.currentShopVariants[variant.instanceId] = variant;
+            });
         });
 
+        // 依照順序渲染各類別
+        typeOrder.forEach(t => {
+            const list = groups[t];
+            if (!list || list.length === 0) return;
+            const header = document.createElement('div');
+            header.className = 'shop-group';
+            header.innerHTML = `<div class="shop-group-title">${typeLabels[t] || t}</div>`;
+            container.appendChild(header);
+
+            list.forEach(variant => {
+                const priceText = (variant.price !== undefined) ? `${variant.price} 金幣` : '--';
+                const rarityColor = variant.rarity ? RARITY[variant.rarity]?.color || '#ffffff' : '#ffffff';
+                const rarityName = variant.rarity ? RARITY[variant.rarity]?.name || variant.rarity : '';
+                const badgeHtml = (variant.rarity && variant.rarity !== 'common') ? `<div class="rarity-badge small" style="background:${rarityColor}; color:#fff; margin-right:8px;">${rarityName}</div>` : `<div class="rarity-badge small common" style="margin-right:8px;">${rarityName || '普通'}</div>`;
+
+                const shopItemEl = document.createElement('div');
+                shopItemEl.className = 'shop-item';
+                if (variant.rarity && variant.rarity !== 'common') {
+                    shopItemEl.style.borderColor = rarityColor;
+                }
+
+                const variantIdAttr = variant.instanceId ? `data-variant-id="${variant.instanceId}"` : `data-item-key="${variant.baseId || variant.id}"`;
+
+                shopItemEl.innerHTML = `\n                <div style="display:flex; align-items:center; gap:10px;">${badgeHtml}<div style="font-size: 24px;">${variant.icon}</div></div>\n                <div style="flex: 1; margin-left: 10px;">\n                    <div style="font-weight: bold; color: ${rarityColor};">${variant.name}</div>\n                    <div style="font-size: 12px; color: #ffd700;">💰 ${priceText}</div>\n                </div>\n                <button class="btn btn-primary btn-buy-item" ${variantIdAttr} style="padding: 5px 10px; font-size: 12px;">購買</button>\n            `;
+
+                const shopStats = [];
+                if (typeof variant.atk === 'number') shopStats.push(`⚔️ +${variant.atk} ATK`);
+                if (typeof variant.def === 'number') shopStats.push(`🛡️ +${variant.def} DEF`);
+                if (typeof variant.speed === 'number') shopStats.push(`💨 +${variant.speed} SPD`);
+                if (shopStats.length) {
+                    const statRow = `<div style="font-size:12px; color:#a0a0a0; margin-top:6px;">${shopStats.join('  ')}</div>`;
+                    shopItemEl.innerHTML = shopItemEl.innerHTML.replace('</div>\n                <button', `</div>${statRow}\n                <button`);
+                }
+
+                container.appendChild(shopItemEl);
+            });
+        });
+
+        // 在生成完商店清單後，同步渲染商店內的玩家背包視圖
         this.renderShopInventory(activePlayer);
+    }
+
+    // 供外部（例如 main.js）在購買時取回變體實例
+    getShopVariant(variantId) {
+        return this.currentShopVariants ? this.currentShopVariants[variantId] : null;
     }
 
     renderShopInventory(player) {
