@@ -1,6 +1,6 @@
-import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.0.5';
-import { rollItemInstance } from './item_factory.js?version=1.0.5';
-import { ATTACK_CONFIG } from './stats_config.js?version=1.0.5';
+import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.0.7';
+import { rollItemInstance } from './item_factory.js?version=1.0.7';
+import { ATTACK_CONFIG } from './stats_config.js?version=1.0.7';
 
 export class BattleEngine {
     constructor(player, ui) {
@@ -39,8 +39,8 @@ export class BattleEngine {
             battleLog.innerHTML = '';
         }
 
-        // 恢復玩家滿 HP
-        this.player.hp = this.player.maxHp;
+        // 恢復玩家滿 HP（使用 VIT 加成後的實際上限）
+        this.player.hp = this.player.effectiveMaxHp;
 
         // 選怪：若是地圖模式 (opts.mode === 'map' 且有 mapKey)，則從該地圖隨機挑怪
         let monsterTemplate;

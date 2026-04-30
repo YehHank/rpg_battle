@@ -1,5 +1,5 @@
-import { ITEMS, RARITY, MAPS } from './data.js?version=1.0.5';
-import { generateShopVariants } from './item_factory.js?version=1.0.5';
+import { ITEMS, RARITY, MAPS } from './data.js?version=1.0.7';
+import { generateShopVariants } from './item_factory.js?version=1.0.7';
 
 export class UIManager {
     constructor() {
@@ -26,7 +26,25 @@ export class UIManager {
     updatePlayerPanel(player) {
         const infoDiv = document.getElementById('player-info');
         if (!infoDiv || !player) return;
-        infoDiv.innerHTML = `\n            <div class="level-badge">LV.${player.level} ${player.className}</div>\n            <div class="stat-row"><span class="stat-label">STR</span><span class="stat-value">${player.str}</span></div>\n            <div class="stat-row"><span class="stat-label">AGI</span><span class="stat-value">${player.agi}</span></div>\n            <div class="stat-row"><span class="stat-label">VIT</span><span class="stat-value">${player.vit}</span></div>\n            <div class="stat-row"><span class="stat-label">INT</span><span class="stat-value">${player.int}</span></div>\n            <div class="stat-row"><span class="stat-label">DEX</span><span class="stat-value">${player.dex}</span></div>\n            <div class="stat-row"><span class="stat-label">LUK</span><span class="stat-value">${player.luk}</span></div>\n            <div class="stat-row"><span class="stat-label">🔷 可分配點數</span><span class="stat-value">${player.statPointsAvailable} <button class="btn btn-primary" id="btn-open-allocate" ${player.statPointsAvailable <= 0 ? 'disabled' : ''}>分配點數</button></span></div>\n            <div class="stat-row"><span class="stat-label">❤️ HP</span><span class="stat-value">${Math.ceil(player.hp)}/${player.maxHp}</span></div>\n            <div class="stat-row"><span class="stat-label">⚔️ ATK</span><span class="stat-value">${player.totalAtk}</span></div>\n            <div class="stat-row"><span class="stat-label">🛡️ DEF</span><span class="stat-value">${player.totalDef}</span></div>\n            <div class="stat-row"><span class="stat-label">✨ SPD</span><span class="stat-value">${player.totalSpeed}</span></div>\n            <div class="stat-row"><span class="stat-label">💰 GOLD</span><span class="stat-value">${player.gold}</span></div>\n            <div class="stat-row"><span class="stat-label">🎒 背包</span><span class="stat-value">${player.inventory.length}/${player.inventoryLimit}</span></div>\n            <div class="exp-bar-container">\n                <div class="exp-bar" style="width: ${(player.exp / player.nextLevelExp) * 100}%"></div>\n        `;
+        // 使用套用 VIT 的實際上限顯示（但存檔仍保存 base maxHp）
+        infoDiv.innerHTML = `
+            <div class="level-badge">LV.${player.level} ${player.className}</div>
+            <div class="stat-row"><span class="stat-label">STR</span><span class="stat-value">${player.str}</span></div>
+            <div class="stat-row"><span class="stat-label">AGI</span><span class="stat-value">${player.agi}</span></div>
+            <div class="stat-row"><span class="stat-label">VIT</span><span class="stat-value">${player.vit}</span></div>
+            <div class="stat-row"><span class="stat-label">INT</span><span class="stat-value">${player.int}</span></div>
+            <div class="stat-row"><span class="stat-label">DEX</span><span class="stat-value">${player.dex}</span></div>
+            <div class="stat-row"><span class="stat-label">LUK</span><span class="stat-value">${player.luk}</span></div>
+            <div class="stat-row"><span class="stat-label">🔷 可分配點數</span><span class="stat-value">${player.statPointsAvailable} <button class="btn btn-primary" id="btn-open-allocate" ${player.statPointsAvailable <= 0 ? 'disabled' : ''}>分配點數</button></span></div>
+            <div class="stat-row"><span class="stat-label">❤️ HP</span><span class="stat-value">${Math.ceil(player.hp)}/${player.effectiveMaxHp}</span></div>
+            <div class="stat-row"><span class="stat-label">⚔️ ATK</span><span class="stat-value">${player.totalAtk}</span></div>
+            <div class="stat-row"><span class="stat-label">🛡️ DEF</span><span class="stat-value">${player.totalDef}</span></div>
+            <div class="stat-row"><span class="stat-label">✨ SPD</span><span class="stat-value">${player.totalSpeed}</span></div>
+            <div class="stat-row"><span class="stat-label">💰 GOLD</span><span class="stat-value">${player.gold}</span></div>
+            <div class="stat-row"><span class="stat-label">🎒 背包</span><span class="stat-value">${player.inventory.length}/${player.inventoryLimit}</span></div>
+            <div class="exp-bar-container">
+                <div class="exp-bar" style="width: ${(player.exp / player.nextLevelExp) * 100}%"></div>
+        `;
         this.renderEquipment(player);
         this.renderInventory(player);
     }
@@ -338,8 +356,8 @@ export class UIManager {
     }
 
     updateBattleScene(player, enemy) {
-        if (this.playerHpBar) this.playerHpBar.style.width = `${(player.hp / player.maxHp) * 100}%`;
-        if (this.playerHpText) this.playerHpText.textContent = `${Math.ceil(player.hp)}/${player.maxHp}`;
+        if (this.playerHpBar) this.playerHpBar.style.width = `${(player.hp / player.effectiveMaxHp) * 100}%`;
+        if (this.playerHpText) this.playerHpText.textContent = `${Math.ceil(player.hp)}/${player.effectiveMaxHp}`;
         if (this.enemyHpBar) this.enemyHpBar.style.width = `${(enemy.hp / enemy.maxHp) * 100}%`;
         if (this.enemyHpText) this.enemyHpText.textContent = `${Math.ceil(enemy.hp)}/${enemy.maxHp}`;
         document.getElementById('player-name').textContent = player.name;

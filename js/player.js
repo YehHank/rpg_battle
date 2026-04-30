@@ -1,5 +1,5 @@
-import { CLASSES } from './data.js?version=1.0.5';
-import { POINTS_PER_LEVEL, STAT_COEFFICIENTS, DEFAULT_CLASS_STATS, DEFENSE_CONFIG } from './stats_config.js?version=1.0.5';
+import { CLASSES } from './data.js?version=1.0.7';
+import { POINTS_PER_LEVEL, STAT_COEFFICIENTS, DEFAULT_CLASS_STATS, DEFENSE_CONFIG } from './stats_config.js?version=1.0.7';
 
 export class Player {
     constructor(name, classKey) {
@@ -113,6 +113,12 @@ export class Player {
         return Math.min(0.5, this.luk * STAT_COEFFICIENTS.LUK_DODGE_PER_POINT);
     }
 
+    // 實際上限血量：基礎 maxHp + VIT 加成（顯示與戰鬥中使用）
+    get effectiveMaxHp() {
+        const vitBonus = Math.floor((this.vit || 0) * STAT_COEFFICIENTS.VIT_HP_PER_POINT);
+        return Math.max(1, Math.floor((this.maxHp || 0) + vitBonus));
+    }
+
     allocateStat(statName, delta) {
         const keys = ['str','agi','vit','int','dex','luk'];
         if (!keys.includes(statName)) return false;
@@ -121,6 +127,8 @@ export class Player {
         if (this.statPointsAvailable < amount) return false;
         this[statName] += amount;
         this.statPointsAvailable -= amount;
+        // 當屬性變動（特別是 VIT）時，確保當前血量不會超過新的實際上限
+        this.hp = Math.min(this.hp, this.effectiveMaxHp);
         this._notifyChange();
         return true;
     }
@@ -230,7 +238,8 @@ export class Player {
         this.exp -= this.nextLevelExp;
         this.nextLevelExp = Math.floor(this.nextLevelExp * 1.5);
         this.maxHp += 20;
-        this.hp = this.maxHp;
+        // 升級時把血量補滿到套用 VIT 後的上限
+        this.hp = this.effectiveMaxHp;
         this.atk += 5;
         this.def += 2;
         this.speed += 1;
