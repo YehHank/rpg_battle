@@ -1,5 +1,5 @@
-import { ITEMS, RARITY, MAPS } from './data.js?version=1.0.7';
-import { generateShopVariants } from './item_factory.js?version=1.0.7';
+import { ITEMS, RARITY, MAPS } from './data.js?version=1.0.8';
+import { generateShopVariants } from './item_factory.js?version=1.0.8';
 
 export class UIManager {
     constructor() {

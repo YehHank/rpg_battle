@@ -742,4 +742,21 @@ h3 {
 .game-menu .menu-item { display: block; width: 100%; text-align: left; background: transparent; color: #ffffff; padding: 8px 10px; border: none; cursor: pointer; border-radius: 6px; }
 .game-menu .menu-item:hover { background: rgba(255,255,255,0.03); }
 
+/* 自動刷怪外掛的懸浮停止按鈕（預設 hidden，由 JS 控制顯示） */
+.floating-stop {
+    position: fixed;
+    left: 12px;
+    bottom: 12px;
+    z-index: 14000;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: linear-gradient(135deg,#d9534f,#c12e2e);
+    color: #fff;
+    border: 2px solid rgba(0,0,0,0.2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    font-weight: 700;
+    cursor: pointer;
+}
+.floating-stop:hover { transform: translateY(-2px); }
+
 

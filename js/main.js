@@ -1,9 +1,10 @@
-import { CLASSES, ITEMS } from './data.js?version=1.0.7';
-import { Player } from './player.js?version=1.0.7';
-import { BattleEngine } from './battle.js?version=1.0.7';
-import { UIManager } from './ui.js?version=1.0.7';
-import { SaveManager } from './save_manager.js?version=1.0.7';
-import { POINTS_PER_LEVEL } from './stats_config.js?version=1.0.7';
+import { CLASSES, ITEMS } from './data.js?version=1.0.8';
+import { Player } from './player.js?version=1.0.8';
+import { BattleEngine } from './battle.js?version=1.0.8';
+import { UIManager } from './ui.js?version=1.0.8';
+import { SaveManager } from './save_manager.js?version=1.0.8';
+import { POINTS_PER_LEVEL } from './stats_config.js?version=1.0.8';
+import AutoBattlePlugin from './auto_battle_plugin.js?version=1.0.0';
 
 class Game {
     constructor() {
@@ -190,6 +191,17 @@ class Game {
         const gameMenuBtn = document.getElementById('btn-game-menu');
         const gameMenu = document.getElementById('game-menu');
         const menuReset = document.getElementById('menu-reset-game');
+
+        const menuAuto = document.getElementById('menu-open-auto-battle');
+        if (menuAuto) {
+            menuAuto.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                // 隱藏選單
+                if (gameMenu) { gameMenu.classList.remove('show'); gameMenu.hidden = true; }
+                // 開啟自動刷怪外掛介面
+                try { AutoBattlePlugin.openModal(this); } catch (e) { console.error('開啟自動刷怪外掛失敗', e); }
+            });
+        }
 
         if (gameMenuBtn && gameMenu) {
             // 點齒輪：切換選單顯示
@@ -418,6 +430,7 @@ class Game {
         const result = await this.battle.startBattle(this.wave, this, { mode: 'map', mapKey });
         // 地圖戰鬥不改變塔層（wave），僅給予獎勵。結果返回後回到地圖選單或主畫面。
         SaveManager.save(this.player, { wave: this.wave });
+        return result;
     }
 
     updateMainUI() {

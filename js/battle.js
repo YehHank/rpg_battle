@@ -1,6 +1,6 @@
-import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.0.7';
-import { rollItemInstance } from './item_factory.js?version=1.0.7';
-import { ATTACK_CONFIG } from './stats_config.js?version=1.0.7';
+import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.0.8';
+import { rollItemInstance } from './item_factory.js?version=1.0.8';
+import { ATTACK_CONFIG, STAT_COEFFICIENTS } from './stats_config.js?version=1.0.8';
 
 export class BattleEngine {
     constructor(player, ui) {
@@ -181,7 +181,16 @@ export class BattleEngine {
     async playerSkill() {
         const skillMultiplier = 1.5;
         const atkScale = (ATTACK_CONFIG && ATTACK_CONFIG.ATK_SCALE) ? ATTACK_CONFIG.ATK_SCALE : 50;
-        const raw = Math.floor(this.player.totalAtk * skillMultiplier);
+        // 如果是法師，讓技能參考 INT 屬性（以 INT_MATK_PER_POINT 為基底），同時保留少量物理 ATK 加成
+        let raw;
+        if (this.player && this.player.classKey === 'mage') {
+            const intMatkPerPoint = (STAT_COEFFICIENTS && STAT_COEFFICIENTS.INT_MATK_PER_POINT) ? STAT_COEFFICIENTS.INT_MATK_PER_POINT : 2;
+            const intMatk = Math.floor((this.player.int || 0) * intMatkPerPoint);
+            const physContribution = Math.floor((this.player.totalAtk || 0) * 0.15); // 15% 物理攻擊微量加成
+            raw = Math.floor((intMatk + physContribution) * skillMultiplier);
+        } else {
+            raw = Math.floor(this.player.totalAtk * skillMultiplier);
+        }
         const base = Math.max(1, Math.floor(raw * (atkScale / (atkScale + (this.enemy.def || 0)))));
         const isCrit = Math.random() < (this.player.critChance || 0);
         const finalDmg = isCrit ? Math.floor(base * this.player.critMultiplier) : base;
