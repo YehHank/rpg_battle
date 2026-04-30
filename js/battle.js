@@ -1,6 +1,6 @@
-import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.0.4';
-import { rollItemInstance } from './item_factory.js?version=1.0.4';
-import { ATTACK_CONFIG } from './stats_config.js?version=1.0.4';
+import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.0.5';
+import { rollItemInstance } from './item_factory.js?version=1.0.5';
+import { ATTACK_CONFIG } from './stats_config.js?version=1.0.5';
 
 export class BattleEngine {
     constructor(player, ui) {
@@ -307,15 +307,13 @@ export class BattleEngine {
         const allKeys = Object.keys(ITEMS || {});
         if (!allKeys || allKeys.length === 0) return;
 
-        // 掉落嘗試次數（隨 wave 增加）
-        const attempts = 1 + Math.floor(Math.max(0, this.currentWave) / 10);
+        // 掉落嘗試次數（改為較緩和成長：每 30 波 +1，避免高層爆炸式增加）
+        const attempts = 1 + Math.floor(Math.max(0, this.currentWave) / 30);
 
         // 稀有度對掉落權重的調整（較小值 => 掉率較低）
-        const RARITY_DROP_MOD = { common: 1.0, uncommon: 0.6, rare: 0.25, epic: 0.10, legendary: 0.03 };
+        const RARITY_DROP_MOD = { common: 2.0, uncommon: 1.2, rare: 0.5, epic: 0.20, legendary: 0.06 };
 
         for (let i = 0; i < attempts; i++) {
-            if (Math.random() >= this.enemy.dropRate) continue;
-
             // 隨機挑一個模板
             const key = allKeys[Math.floor(Math.random() * allKeys.length)];
             const template = ITEMS[key];
@@ -324,9 +322,10 @@ export class BattleEngine {
             const rarity = template.rarity || 'common';
             const rarityMod = RARITY_DROP_MOD[rarity] || 0.5;
 
-            // 擴大掉率隨 wave 緩慢增加，但不會超過 0.95
-            const waveBonus = Math.min(0.95, 1 + (this.currentWave || 0) * 0.01);
-            const finalChance = Math.min(0.95, this.enemy.dropRate * rarityMod * waveBonus);
+            // 擴大掉率隨 wave 緩慢增加（改為每波 +0.5%），再套用稀有度與怪物基本掉率，並以 0.95 為上限
+            const waveBonus = 1 + (this.currentWave || 0) * 0.005;
+            const baseChance = (this.enemy.dropRate || 0) * rarityMod * waveBonus;
+            const finalChance = Math.min(0.95, baseChance);
 
             if (Math.random() < finalChance) {
                 // 依據 wave 放大物品屬性

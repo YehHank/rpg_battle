@@ -1,9 +1,9 @@
-import { CLASSES, ITEMS } from './data.js?version=1.0.4';
-import { Player } from './player.js?version=1.0.4';
-import { BattleEngine } from './battle.js?version=1.0.4';
-import { UIManager } from './ui.js?version=1.0.4';
-import { SaveManager } from './save_manager.js?version=1.0.4';
-import { POINTS_PER_LEVEL } from './stats_config.js?version=1.0.4';
+import { CLASSES, ITEMS } from './data.js?version=1.0.5';
+import { Player } from './player.js?version=1.0.5';
+import { BattleEngine } from './battle.js?version=1.0.5';
+import { UIManager } from './ui.js?version=1.0.5';
+import { SaveManager } from './save_manager.js?version=1.0.5';
+import { POINTS_PER_LEVEL } from './stats_config.js?version=1.0.5';
 
 class Game {
     constructor() {
