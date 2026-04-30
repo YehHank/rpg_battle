@@ -1,6 +1,6 @@
-import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.0.8';
-import { rollItemInstance } from './item_factory.js?version=1.0.8';
-import { ATTACK_CONFIG, STAT_COEFFICIENTS } from './stats_config.js?version=1.0.8';
+import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.0.9';
+import { rollItemInstance } from './item_factory.js?version=1.0.9';
+import { ATTACK_CONFIG, STAT_COEFFICIENTS } from './stats_config.js?version=1.0.9';
 
 export class BattleEngine {
     constructor(player, ui) {
@@ -105,7 +105,7 @@ export class BattleEngine {
             if (this.isBattleOver) break;
 
             // 敵人回合
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await new Promise(resolve => setTimeout(resolve, 300));
             await this.enemyTurn();
         }
         // 返回本次戰鬥結果（true = 勝利, false = 戰敗）

@@ -1,9 +1,9 @@
-import { CLASSES, ITEMS } from './data.js?version=1.0.8';
-import { Player } from './player.js?version=1.0.8';
-import { BattleEngine } from './battle.js?version=1.0.8';
-import { UIManager } from './ui.js?version=1.0.8';
-import { SaveManager } from './save_manager.js?version=1.0.8';
-import { POINTS_PER_LEVEL } from './stats_config.js?version=1.0.8';
+import { CLASSES, ITEMS } from './data.js?version=1.0.9';
+import { Player } from './player.js?version=1.0.9';
+import { BattleEngine } from './battle.js?version=1.0.9';
+import { UIManager } from './ui.js?version=1.0.9';
+import { SaveManager } from './save_manager.js?version=1.0.9';
+import { POINTS_PER_LEVEL } from './stats_config.js?version=1.0.9';
 import AutoBattlePlugin from './auto_battle_plugin.js?version=1.0.0';
 
 class Game {

@@ -1,4 +1,4 @@
-import { MAPS } from './data.js?version=1.0.8';
+import { MAPS } from './data.js?version=1.0.9';
 
 const AutoBattlePlugin = (() => {
     let running = false;
@@ -89,6 +89,7 @@ const AutoBattlePlugin = (() => {
                     try {
                         if (gameInstance.battle.isPlayerTurn && gameInstance.battle.enemy) {
                             gameInstance.battle.handleAction('attack');
+                            await new Promise(r => setTimeout(r, 100));
                         }
                     } catch (e) {
                         console.error('AutoBattle monitor error', e);

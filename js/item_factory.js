@@ -1,4 +1,4 @@
-import { ITEMS, RARITY } from './data.js?version=1.0.8';
+import { ITEMS, RARITY } from './data.js?version=1.0.9';
 
 // 根據稀有度決定屬性浮動幅度（越稀有，浮動越小）
 const RARITY_VARIANCE = {
