@@ -1,5 +1,5 @@
-import { MONSTER_TYPES, ITEMS } from './data.js';
-import { rollItemInstance } from './item_factory.js';
+import { MONSTER_TYPES, ITEMS } from './data.js?version=1.0.3';
+import { rollItemInstance } from './item_factory.js?version=1.0.3';
 
 export class BattleEngine {
     constructor(player, ui) {
