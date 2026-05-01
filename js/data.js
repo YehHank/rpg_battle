@@ -247,15 +247,15 @@ export const MAPS = [
     { key: 'cave', name: '洞穴區域', min: 16, max: 30, indices: [6,7,8] },
     { key: 'dungeon', name: '地下城', min: 31, max: 50, indices: [9,10,11] },
     { key: 'abyss', name: '深淵', min: 51, max: 70, indices: [12,13,14] },
-    { key: 'void', name: '虛空', min: 71, max: 85, indices: [15,16] },
-    { key: 'heaven', name: '天界', min: 86, max: 100, indices: [17,18,19] },
+    { key: 'void', name: '虛空', min: 71, max: 85, indices: [15,16,17] },
+    { key: 'heaven', name: '天界', min: 86, max: 100, indices: [18,19] },
     { key: 'village_higher', name: '高級新手村', min: 101, max: 105, indices: [0,1,2] },
     { key: 'forest_higher', name: '高級森林', min: 106, max: 115, indices: [3,4,5] },
     { key: 'cave_higher', name: '高級洞穴', min: 116, max: 130, indices: [6,7,8] },
     { key: 'dungeon_higher', name: '高級地下城', min: 131, max: 150, indices: [9,10,11] },
     { key: 'abyss_higher', name: '深淵進階', min: 151, max: 170, indices: [12,13,14] },
-    { key: 'void_higher', name: '虛空深處', min: 171, max: 185, indices: [15,16] },
-    { key: 'heaven_higher', name: '天界進階', min: 186, max: 200, indices: [17,18,19] },
+    { key: 'void_higher', name: '虛空深處', min: 171, max: 185, indices: [15,16,17] },
+    { key: 'heaven_higher', name: '天界進階', min: 186, max: 200, indices: [18,19] },
     // 超過 200 則使用最高階區域作為預設（保護性回退）
     { key: 'cosmic', name: '宇宙之境', min: 201, max: Infinity, indices: [20,21,22] }
 ];
@@ -273,26 +273,15 @@ export function getMonsterTemplateForWave(wave) {
     // 回傳模板的淺拷貝，並在 100 層以上套用額外素質加強
     const template = { ...MONSTER_TYPES[chosenIndex] };
     if (level >= 101) {
-        // 每 10 層一個階段（tier 1 = 101-110, tier 2 = 111-120, ...）
-        const tier = Math.ceil((level - 100) / 10);
 
-        // HP/EXP/GOLD：以 2^(tier+3) 做指數成長
-        //   tier 1 = ×16, tier 2 = ×32, tier 3 = ×64, tier 5 = ×256, tier 10 = ×8192
-        // 設計用意：天界 HP ~5000 vs 新手村 HP ~50（差距約 100×），
-        //   tier 3 起大致追平天界難度，tier 5+ 開始顯著超越
-        const hpMultiplier  = Math.pow(2, tier + 3);
+        const multiplier  = 1 + Math.ceil((level - 100) / 100);
 
-        // ATK：以 2^(tier+1) 較緩成長，避免低層數時秒殺玩家
-        //   tier 1 = ×4, tier 2 = ×8, tier 3 = ×16, tier 5 = ×64
-        const atkMultiplier = Math.pow(2, tier + 1);
-
-        template.hp    = Math.floor((template.hp    || 1) * hpMultiplier);
-        template.atk   = Math.floor((template.atk   || 1) * atkMultiplier);
-        // 速度每階段 +2，上限 100（加快敵人行動頻率）
-        template.speed = Math.min(100, (template.speed || 4) + tier * 2);
-        template.exp   = Math.max(1,  Math.floor((template.exp   || 0) * hpMultiplier));
-        template.gold  = Math.max(0,  Math.floor((template.gold  || 0) * hpMultiplier));
-        template.dropRate = Math.min(0.95, (template.dropRate || 0) + tier * 0.04);
+        template.hp    = 3000 + Math.floor((template.hp    || 1) * multiplier);
+        template.atk   = 200 + Math.floor((template.atk   || 1) * multiplier);
+        template.speed = 50 + Math.min(100, (template.speed || 4) * multiplier);
+        template.exp   = 3000 + Math.max(1,  Math.floor((template.exp   || 0) * multiplier));
+        template.gold  = 2000 + Math.max(0,  Math.floor((template.gold  || 0) * multiplier));
+        template.dropRate = Math.min(0.95, (template.dropRate || 0) + multiplier * 0.04);
     }
     return template;
 }
