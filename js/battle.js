@@ -1,6 +1,6 @@
-import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.0.9';
-import { rollItemInstance } from './item_factory.js?version=1.0.9';
-import { ATTACK_CONFIG, STAT_COEFFICIENTS } from './stats_config.js?version=1.0.9';
+import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.1.0';
+import { rollItemInstance } from './item_factory.js?version=1.1.0';
+import { ATTACK_CONFIG, STAT_COEFFICIENTS } from './stats_config.js?version=1.1.0';
 
 export class BattleEngine {
     constructor(player, ui) {
@@ -52,11 +52,15 @@ export class BattleEngine {
             this.enemyMapInfo = null;
         }
         this.enemy = { ...monsterTemplate };
-        this.enemy.hp = Math.floor(this.enemy.hp * (1 + wave * 0.2));
+        // 調整 wave 的成長曲線為對數緩增，以避免高層數時數值爆炸
+        const wf = Math.max(0, Number(wave) || 0);
+        const waveMultiplier = 1 + Math.log1p(wf) * 0.20; // 可調：0.20 代表對數係數
+        this.enemy.hp = Math.floor(this.enemy.hp * waveMultiplier);
         this.enemy.maxHp = this.enemy.hp;
-        this.enemy.atk = Math.floor(this.enemy.atk * (1 + wave * 0.2));
+        this.enemy.atk = Math.floor(this.enemy.atk * waveMultiplier);
         this.enemy.def = this.enemy.def || 0;
-        this.enemy.goldReward = Math.floor(this.enemy.gold * (1 + wave * 0.3));
+        const goldMultiplier = 1 + Math.log1p(wf) * 0.15;
+        this.enemy.goldReward = Math.floor(this.enemy.gold * goldMultiplier);
 
         if (opts.mode === 'map' && this.enemyMapInfo) {
             console.log(`地圖 ${this.enemyMapInfo.name} 開始！敵人是: ${this.enemy.name}`);
@@ -181,13 +185,12 @@ export class BattleEngine {
     async playerSkill() {
         const skillMultiplier = 1.5;
         const atkScale = (ATTACK_CONFIG && ATTACK_CONFIG.ATK_SCALE) ? ATTACK_CONFIG.ATK_SCALE : 50;
-        // 如果是法師，讓技能參考 INT 屬性（以 INT_MATK_PER_POINT 為基底），同時保留少量物理 ATK 加成
+        // 如果是法師，讓技能參考 effectiveMatk（INT 加成 + 法杖 matk），同時保留少量物理 ATK 加成
         let raw;
         if (this.player && this.player.classKey === 'mage') {
-            const intMatkPerPoint = (STAT_COEFFICIENTS && STAT_COEFFICIENTS.INT_MATK_PER_POINT) ? STAT_COEFFICIENTS.INT_MATK_PER_POINT : 2;
-            const intMatk = Math.floor((this.player.int || 0) * intMatkPerPoint);
+            const matk = this.player.effectiveMatk || 0;
             const physContribution = Math.floor((this.player.totalAtk || 0) * 0.15); // 15% 物理攻擊微量加成
-            raw = Math.floor((intMatk + physContribution) * skillMultiplier);
+            raw = Math.floor((matk + physContribution) * skillMultiplier);
         } else {
             raw = Math.floor(this.player.totalAtk * skillMultiplier);
         }
@@ -297,7 +300,11 @@ export class BattleEngine {
 
         if (isVictory) {
             const goldEarned = this.enemy.goldReward || 0;
-            const expEarned = this.enemy.exp || 10;
+            // 根據目前波數調整經驗值，使用對數緩增以避免高層數爆炸，同時讓高層給予較多經驗加速升等
+            const baseExp = this.enemy.exp || 10;
+            const wf = Math.max(0, Number(this.currentWave) || 0);
+            const expMultiplier = 1 + Math.log1p(wf) * 0.5; // 可調係數：0.5
+            const expEarned = Math.floor(baseExp * expMultiplier);
             this.player.gold += goldEarned;
             this.player.gainExp(expEarned);
             this.ui.logCombat(`戰鬥結束！獲得 ${goldEarned} 金幣與 ${expEarned} EXP`, 'system');

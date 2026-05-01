@@ -1,5 +1,5 @@
-import { ITEMS, RARITY, MAPS } from './data.js?version=1.0.9';
-import { generateShopVariants } from './item_factory.js?version=1.0.9';
+import { ITEMS, RARITY, MAPS, MYSTERY_ITEM } from './data.js?version=1.1.0';
+import { generateShopVariants } from './item_factory.js?version=1.1.0';
 
 export class UIManager {
     constructor() {
@@ -10,8 +10,11 @@ export class UIManager {
         this.enemyHpBar = document.getElementById('enemy-hp-bar');
         this.enemyHpText = document.getElementById('enemy-hp-text');
         this.battleActions = document.getElementById('battle-actions');
-        // 商店中目前顯示的變體快取（variantId -> itemInstance）
+        // 商店快取
+        // currentShopVariants: variantId -> itemInstance
         this.currentShopVariants = {};
+        // shopVariantsByKey: itemKey -> [variantInstance, ...]
+        this.shopVariantsByKey = {};
     }
 
     showScene(sceneId) {
@@ -21,6 +24,11 @@ export class UIManager {
         });
         const target = document.getElementById(`scene-${sceneId}`);
         if (target) target.classList.add('active');
+        // 若使用者開啟商店場景時，清除舊的商店快取，讓每次進入商店會重新生成商品
+        if (sceneId === 'shop') {
+            this.currentShopVariants = {};
+            this.shopVariantsByKey = {};
+        }
     }
 
     updatePlayerPanel(player) {
@@ -38,6 +46,7 @@ export class UIManager {
             <div class="stat-row"><span class="stat-label">🔷 可分配點數</span><span class="stat-value">${player.statPointsAvailable} <button class="btn btn-primary" id="btn-open-allocate" ${player.statPointsAvailable <= 0 ? 'disabled' : ''}>分配點數</button></span></div>
             <div class="stat-row"><span class="stat-label">❤️ HP</span><span class="stat-value">${Math.ceil(player.hp)}/${player.effectiveMaxHp}</span></div>
             <div class="stat-row"><span class="stat-label">⚔️ ATK</span><span class="stat-value">${player.totalAtk}</span></div>
+            <div class="stat-row"><span class="stat-label">🔮 MATK</span><span class="stat-value">${player.effectiveMatk}</span></div>
             <div class="stat-row"><span class="stat-label">🛡️ DEF</span><span class="stat-value">${player.totalDef}</span></div>
             <div class="stat-row"><span class="stat-label">✨ SPD</span><span class="stat-value">${player.totalSpeed}</span></div>
             <div class="stat-row"><span class="stat-label">💰 GOLD</span><span class="stat-value">${player.gold}</span></div>
@@ -187,6 +196,7 @@ export class UIManager {
                 slotEl.style.borderColor = item.rarity && item.rarity !== 'common' ? rarityColor : '';
                 const stats = [];
                 if (typeof item.atk === 'number') stats.push(`⚔️ +${item.atk} ATK`);
+                if (typeof item.matk === 'number') stats.push(`🔮 +${item.matk} MATK`);
                 if (typeof item.def === 'number') stats.push(`🛡️ +${item.def} DEF`);
                 if (typeof item.speed === 'number') stats.push(`💨 +${item.speed} SPD`);
                 const statsHtml = stats.length ? `<div class="item-stats">${stats.join('  ')}</div>` : '';
@@ -217,6 +227,7 @@ export class UIManager {
                 if (item.rarity && item.rarity !== 'common') itemEl.style.borderColor = rarityColor;
                 const stats = [];
                 if (typeof item.atk === 'number') stats.push(`⚔️ +${item.atk} ATK`);
+                if (typeof item.matk === 'number') stats.push(`🔮 +${item.matk} MATK`);
                 if (typeof item.def === 'number') stats.push(`🛡️ +${item.def} DEF`);
                 if (typeof item.speed === 'number') stats.push(`💨 +${item.speed} SPD`);
                 const statsHtml = stats.length ? `<div class="item-stats">${stats.join('  ')}</div>` : '';
@@ -229,39 +240,83 @@ export class UIManager {
         }
     }
 
-    renderShop(player) {
+    renderShop(player, options = {}) {
         const container = document.getElementById('shop-items-container');
         const goldDisplay = document.getElementById('shop-gold-amount');
         if (!container || !player) return;
+
+        const mode = (options && options.mode) ? options.mode : (this.lastShopMode || 'normal');
+        this.lastShopMode = mode;
 
         // 確保使用正確的玩家實例
         const activePlayer = window.gameInstance ? window.gameInstance.player : player;
         if (activePlayer && goldDisplay) goldDisplay.textContent = activePlayer.gold;
         
-        container.innerHTML = ''; 
-        if (!activePlayer) return;
+        // 更新商店頁面標題與左側分類（依 mode 顯示）
+        const sceneHeader = document.querySelector('#scene-shop > h2');
+        if (sceneHeader) sceneHeader.textContent = (mode === 'mystery') ? '📦 神秘商店' : '🛒 冒險者商店';
+        const leftTitleEl = document.querySelector('#scene-shop .shop-column.shop-left .shop-title');
+        if (leftTitleEl) leftTitleEl.textContent = (mode === 'mystery') ? '📦 神秘寶箱' : '精選商品';
 
-        // 清空快取
-        this.currentShopVariants = {};
+        // 根據模式調整版面：
+        // - mystery: 顯示左右欄，左側為玩家背包（可販售），右側顯示神秘寶箱
+        // - normal: 顯示左右欄，左側為商品清單，右側為玩家背包；隱藏下方獨立神秘區塊
+        const shopContainerEl = document.querySelector('#scene-shop .shop-container');
+        const msSection = document.querySelector('.mystery-shop-section');
+        if (mode === 'mystery') {
+            if (shopContainerEl) shopContainerEl.style.display = '';
+            if (msSection) msSection.style.display = 'none';
+            // 左側顯示神秘寶箱（箱子放左側）
+            this.renderMysteryShop(activePlayer, 'shop-items-container');
+            // 右側顯示玩家背包（可販售）
+            this.renderShopInventory(activePlayer, 'shop-inventory-container');
+            return;
+        }
+
+        // normal 模式：顯示左/右欄，隱藏神秘商店區塊
+        if (shopContainerEl) shopContainerEl.style.display = '';
+        if (msSection) msSection.style.display = 'none';
+
+        container.innerHTML = '';
+        if (!activePlayer) return;
 
         // 先按照 type 分組（並跳過神話等級在商店上架）
         const groups = {};
         const typeOrder = ['weapon', 'armor', 'helm', 'shoes', 'shield', 'accessory', 'other'];
         const typeLabels = { weapon: '武器', armor: '胸甲', helm: '頭盔', shoes: '鞋子', shield: '盾牌', accessory: '飾品', other: '其他' };
 
-        Object.keys(ITEMS).forEach(itemKey => {
-            const template = ITEMS[itemKey];
-            if (!template) return;
-            // 神話等級不在商店上架，僅能怪物掉落
-            if (template.rarity === 'legendary') return;
+        // 若 shopVariantsByKey 尚未建立（通常為第一次或已被清除），則為每個上架模板建立變體並快取
+        const needGenerate = !this.shopVariantsByKey || Object.keys(this.shopVariantsByKey).length === 0;
+        if (needGenerate) {
+            this.shopVariantsByKey = {};
+            this.currentShopVariants = {};
+            Object.keys(ITEMS).forEach(itemKey => {
+                const template = ITEMS[itemKey];
+                if (!template) return;
+                // 神話等級不在商店上架，僅能怪物掉落
+                if (template.rarity === 'legendary') return;
+                // 普通模式：排除神秘物品
+                if (template.isMystery) return;
 
-            const variants = generateShopVariants(itemKey, 1);
-            variants.forEach(variant => {
-                if (!variant) return;
-                const type = variant.type || template.type || 'other';
+                const variants = generateShopVariants(itemKey, 1);
+                variants.forEach(variant => {
+                    if (!variant) return;
+                    if (!this.shopVariantsByKey[itemKey]) this.shopVariantsByKey[itemKey] = [];
+                    this.shopVariantsByKey[itemKey].push(variant);
+                    if (variant.instanceId) this.currentShopVariants[variant.instanceId] = variant;
+                });
+            });
+        }
+
+        // 使用快取的變體來填補分組
+        Object.keys(this.shopVariantsByKey).forEach(itemKey => {
+            const list = this.shopVariantsByKey[itemKey];
+            if (!list || list.length === 0) return;
+            const template = ITEMS[itemKey];
+            list.forEach(variant => {
+                const type = variant.type || (template && template.type) || 'other';
                 if (!groups[type]) groups[type] = [];
                 groups[type].push(variant);
-                if (variant.instanceId) this.currentShopVariants[variant.instanceId] = variant;
             });
         });
 
@@ -292,6 +347,7 @@ export class UIManager {
 
                 const shopStats = [];
                 if (typeof variant.atk === 'number') shopStats.push(`⚔️ +${variant.atk} ATK`);
+                if (typeof variant.matk === 'number') shopStats.push(`🔮 +${variant.matk} MATK`);
                 if (typeof variant.def === 'number') shopStats.push(`🛡️ +${variant.def} DEF`);
                 if (typeof variant.speed === 'number') shopStats.push(`💨 +${variant.speed} SPD`);
                 if (shopStats.length) {
@@ -303,8 +359,8 @@ export class UIManager {
             });
         });
 
-        // 在生成完商店清單後，同步渲染商店內的玩家背包視圖
-        this.renderShopInventory(activePlayer);
+        // 在生成完商店清單後，同步渲染商店內的玩家背包視圖（右側）
+        this.renderShopInventory(activePlayer, 'shop-inventory-container');
     }
 
     // 供外部（例如 main.js）在購買時取回變體實例
@@ -312,8 +368,8 @@ export class UIManager {
         return this.currentShopVariants ? this.currentShopVariants[variantId] : null;
     }
 
-    renderShopInventory(player) {
-        const container = document.getElementById('shop-inventory-container');
+    renderShopInventory(player, containerId = 'shop-inventory-container') {
+        const container = document.getElementById(containerId);
         if (!container || !player) return;
         container.innerHTML = '';
 
@@ -331,16 +387,59 @@ export class UIManager {
                 if (item.rarity && item.rarity !== 'common') itemEl.style.borderColor = rarityColor;
                 const stats = [];
                 if (typeof item.atk === 'number') stats.push(`⚔️ +${item.atk} ATK`);
+                if (typeof item.matk === 'number') stats.push(`🔮 +${item.matk} MATK`);
                 if (typeof item.def === 'number') stats.push(`🛡️ +${item.def} DEF`);
                 if (typeof item.speed === 'number') stats.push(`💨 +${item.speed} SPD`);
                 const statsHtml = stats.length ? `<div class=\"item-stats\">${stats.join('  ')}</div>` : '';
-                itemEl.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">\n                        <div>\n                            <div class=\"item-icon\">${item.icon}</div>\n                            <div style=\"font-size:12px; color: ${rarityColor};\">${item.name}</div>\n                            ${statsHtml}\n                        </div>\n                        <div style=\"display:flex; align-items:center; gap:8px;\">${badgeHtml}<button class=\"btn btn-danger btn-sell-item\" data-item-key=\"${item.id}\" style=\"padding: 3px 8px; font-size: 11px;\">販售</button></div>\n                    </div>`;
+                const sellAttr = item.instanceId ? `data-instance-id="${item.instanceId}"` : `data-item-key="${item.id}"`;
+                itemEl.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">\n                        <div>\n                            <div class=\"item-icon\">${item.icon}</div>\n                            <div style=\"font-size:12px; color: ${rarityColor};\">${item.name}</div>\n                            ${statsHtml}\n                        </div>\n                        <div style=\"display:flex; align-items:center; gap:8px;\">${badgeHtml}<button class=\"btn btn-danger btn-sell-item\" ${sellAttr} style=\"padding: 3px 8px; font-size: 11px;\">販售</button></div>\n                    </div>`;
                 grid.appendChild(itemEl);
             });
             container.appendChild(grid);
         } else {
             container.innerHTML = '<p style="font-size:12px; color:#a0a0a0; text-align:center;">目前沒有物品</p>';
         }
+    }
+
+    renderMysteryShop(player, containerId = 'mystery-shop-container') {
+        const container = document.getElementById(containerId);
+        const goldDisplay = document.getElementById('shop-gold-amount');
+        if (!container || !player) return;
+
+        // 確保使用正確的玩家實例
+        const activePlayer = window.gameInstance ? window.gameInstance.player : player;
+        if (activePlayer && goldDisplay) goldDisplay.textContent = activePlayer.gold;
+
+        // 讀取神秘商店記錄
+        const mysteryShop = window.gameInstance?.mysteryShop || { history: [] };
+
+        container.innerHTML = '';
+        if (!activePlayer) return;
+
+        const mysteryShopDiv = document.createElement('div');
+        mysteryShopDiv.className = 'mystery-shop-wrapper';
+            // 神秘寶箱卡片（通常箱與高級箱）
+            const normalBox = document.createElement('div');
+            normalBox.className = 'mystery-box';
+            const normalItem = ITEMS.mystery_item;
+            const normalCanAfford = activePlayer.gold >= (normalItem?.price || 0);
+            normalBox.innerHTML = `\n            <div class="mystery-box-icon">📦</div>\n            <div class="mystery-box-title">神秘寶箱</div>\n            <div class="mystery-box-desc">內含隨機物品，可能是傳說裝備或神話神器！<br>（也可能只是普通貨色...）</div>\n            <div class="mystery-box-price">💰 ${normalItem?.price || '--'} 金幣</div>\n            <button class="btn btn-primary btn-buy-mystery" data-mystery-key="mystery_item" ${normalCanAfford ? '' : 'disabled'}>開啟寶箱</button>\n        `;
+            mysteryShopDiv.appendChild(normalBox);
+
+            // 高級神秘箱（若存在）
+            const premiumTemplate = ITEMS.mystery_premium;
+            if (premiumTemplate) {
+                const premiumBox = document.createElement('div');
+                premiumBox.className = 'mystery-box premium';
+                const premiumCanAfford = activePlayer.gold >= premiumTemplate.price;
+                premiumBox.innerHTML = `\n                <div class="mystery-box-icon">🧧</div>\n                <div class="mystery-box-title">高級神秘寶箱</div>\n                <div class="mystery-box-desc">高級箱：保證取得極品或更高稀有度的物品（機會包含傳說 / 神話）。</div>\n                <div class="mystery-box-price">💰 ${premiumTemplate.price} 金幣</div>\n                <button class="btn btn-primary btn-buy-mystery" data-mystery-key="mystery_premium" ${premiumCanAfford ? '' : 'disabled'}>開啟高級寶箱</button>\n            `;
+                mysteryShopDiv.appendChild(premiumBox);
+            }
+        // (已將各箱子分別 append) 不再使用未定義的 mysteryBox 變數
+
+        // 已移除「最近購買結果」顯示功能
+
+        container.appendChild(mysteryShopDiv);
     }
 
     handlePurchase(player, item) {
@@ -352,7 +451,8 @@ export class UIManager {
 
         player.gold -= item.price;
         player.addItem(item);
-        this.renderShop(player);
+        const mode = this.lastShopMode || 'normal';
+        this.renderShop(player, { mode });
     }
 
     updateBattleScene(player, enemy) {

@@ -1,9 +1,10 @@
-import { CLASSES, ITEMS } from './data.js?version=1.0.9';
-import { Player } from './player.js?version=1.0.9';
-import { BattleEngine } from './battle.js?version=1.0.9';
-import { UIManager } from './ui.js?version=1.0.9';
-import { SaveManager } from './save_manager.js?version=1.0.9';
-import { POINTS_PER_LEVEL } from './stats_config.js?version=1.0.9';
+import { CLASSES, ITEMS } from './data.js?version=1.1.0';
+import { generateShopVariants, rollItemInstance } from './item_factory.js?version=1.1.0';
+import { Player } from './player.js?version=1.1.0';
+import { BattleEngine } from './battle.js?version=1.1.0';
+import { UIManager } from './ui.js?version=1.1.0';
+import { SaveManager } from './save_manager.js?version=1.1.0';
+import { POINTS_PER_LEVEL } from './stats_config.js?version=1.1.0';
 import AutoBattlePlugin from './auto_battle_plugin.js?version=1.0.0';
 
 class Game {
@@ -126,6 +127,13 @@ class Game {
                 return;
             }
 
+            // 處理神秘商店購買按鈕（支援不同種類的神秘箱，透過 data-mystery-key 指定）
+            if (target.classList.contains('btn-buy-mystery')) {
+                const mysteryKey = target.dataset.mysteryKey || 'mystery_item';
+                this.handleMysteryPurchase(mysteryKey);
+                return;
+            }
+
             // 處理一般 ID 按鈕
             switch (id) {
                 case 'btn-start-adventure': 
@@ -139,7 +147,16 @@ class Game {
                 case 'btn-go-shop':
                     if (this.player) {
                         this.ui.showScene('shop');
-                        this.ui.renderShop(this.player);
+                        this.ui.renderShop(this.player, { mode: 'normal' });
+                    } else {
+                        alert("請先建立角色！");
+                    }
+                    break;
+                case 'btn-go-mystery-shop':
+                    if (this.player) {
+                        this.ui.showScene('shop');
+                        // 以 mystery 模式開啟商店（商店清單只顯示神秘寶箱）
+                        this.ui.renderShop(this.player, { mode: 'mystery' });
                     } else {
                         alert("請先建立角色！");
                     }
@@ -249,10 +266,112 @@ class Game {
             return;
         }
 
+        // 如果購買的是神秘寶箱，則轉為抽取隨機物品並加入背包
+        if (item.isMystery) {
+            if (this.player.inventory.length >= this.player.inventoryLimit) {
+                alert("背包已滿！無法購買神秘寶箱");
+                return;
+            }
+
+            this.player.gold -= item.price;
+            const resultItem = this.generateMysteryItem();
+            this.player.addItem(resultItem);
+
+            console.log(`📦 購買神秘寶箱並獲得: ${resultItem.name}`);
+            // 保留在神秘商店畫面
+            this.ui.renderShop(this.player, { mode: 'mystery' });
+            return;
+        }
+
+        // 一般購買流程（保留在一般商店畫面）
         this.player.gold -= item.price;
         this.player.addItem(item);
         console.log(`成功購買: ${item.name}`);
-        this.ui.renderShop(this.player);
+        this.ui.renderShop(this.player, { mode: 'normal' });
+    }
+
+    handleMysteryPurchase(mysteryKey = 'mystery_item') {
+        // --- 雙重身分驗證：確保 player 不是 null ---
+        if (!this.player) {
+            console.error("❌ 神秘商店購買失敗：玩家實例無效");
+            return;
+        }
+
+        const mysteryItem = ITEMS[mysteryKey] || ITEMS.mystery_item;
+        if (!mysteryItem) {
+            console.error("❌ 神秘商店物品不存在: ", mysteryKey);
+            return;
+        }
+
+        // 檢查金幣
+        if (mysteryItem.price > this.player.gold) {
+            alert("金幣不足！神秘寶箱需要 " + mysteryItem.price + " 金幣");
+            return;
+        }
+
+        // 檢查背包空間
+        if (this.player.inventory.length >= this.player.inventoryLimit) {
+            alert("背包已滿！無法購買神秘寶箱");
+            return;
+        }
+
+        // 扣除金幣
+        this.player.gold -= mysteryItem.price;
+
+        // 若為高級神秘箱，要求至少極品（rare）以上
+        const minRarity = (mysteryKey === 'mystery_premium') ? 'rare' : null;
+        // 隨機抽取物品（使用 item_factory 的隨機生成），可指定最低稀有度
+        const resultItem = this.generateMysteryItem(minRarity);
+
+        // 將抽取的物品加入背包
+        this.player.addItem(resultItem);
+
+        console.log(`📦 神秘商店購買成功：${resultItem.name} (${resultItem.rarity || 'common'})`);
+
+        // 重新渲染商店（保留在神秘商店模式）
+        this.ui.renderShop(this.player, { mode: 'mystery' });
+    }
+
+    generateMysteryItem(minRarity = null) {
+        // 使用與戰鬥掉落一致的機制：依據 wave 決定物品等級與掉落傾向
+        const RARITY_DROP_MOD = { common: 2.0, uncommon: 1.2, rare: 0.5, epic: 0.20, legendary: 0.06 };
+        const rarityWeight = { common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5 };
+
+        const levelForItem = Math.max(1, (this.wave || 0) + 1);
+        const waveBonus = 1 + (this.wave || 0) * 0.005;
+        const chestBase = 0.6; // 基礎掉落傾向（箱子比單一怪物掉落機率高）
+        const attempts = 8;
+
+        // 準備候選模板（排除 isMystery）
+        const allKeys = Object.keys(ITEMS || {}).filter(k => ITEMS[k] && !ITEMS[k].isMystery);
+        if (!allKeys || allKeys.length === 0) return null;
+
+        // 若要求最低稀有度，預先過濾模板
+        let candidateKeys = allKeys;
+        if (minRarity && rarityWeight[minRarity]) {
+            candidateKeys = allKeys.filter(k => (rarityWeight[ITEMS[k].rarity || 'common'] || 1) >= rarityWeight[minRarity]);
+            if (candidateKeys.length === 0) candidateKeys = allKeys; // 若無符合，回退
+        }
+
+        // 嘗試多次，以 wave 與稀有度調整的機率來挑選模板
+        for (let i = 0; i < attempts; i++) {
+            const key = candidateKeys[Math.floor(Math.random() * candidateKeys.length)];
+            const template = ITEMS[key];
+            if (!template) continue;
+            const rarity = template.rarity || 'common';
+            const rarityMod = RARITY_DROP_MOD[rarity] || 0.5;
+            const finalChance = Math.min(0.95, chestBase * rarityMod * waveBonus);
+            if (Math.random() < finalChance) {
+                const inst = rollItemInstance(template, { level: levelForItem }) || { ...template };
+                return inst;
+            }
+        }
+
+        // 若多次嘗試都未成功，回退成直接根據 wave 產生一個實例（保證回傳）
+        const fallbackKey = candidateKeys[Math.floor(Math.random() * candidateKeys.length)];
+        const fallbackTemplate = ITEMS[fallbackKey];
+        const fallbackInst = rollItemInstance(fallbackTemplate, { level: levelForItem }) || { ...fallbackTemplate };
+        return fallbackInst;
     }
 
     handleSellAction(itemKey) {
@@ -282,7 +401,9 @@ class Game {
         this.player.inventory.splice(index, 1);
         this.player.gold += sellPrice;
         console.log(`成功販售: ${item.name}，獲得 ${sellPrice} 金幣`);
-        this.ui.renderShop(this.player);
+        // 保持目前商店模式（若 UI 管理器記錄了 lastShopMode 則使用它）
+        const currentMode = this.ui && this.ui.lastShopMode ? this.ui.lastShopMode : 'normal';
+        this.ui.renderShop(this.player, { mode: currentMode });
     }
 
     renderClassSelection() {

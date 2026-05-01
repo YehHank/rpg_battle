@@ -1,5 +1,5 @@
-import { CLASSES } from './data.js?version=1.0.9';
-import { POINTS_PER_LEVEL, STAT_COEFFICIENTS, DEFAULT_CLASS_STATS, DEFENSE_CONFIG } from './stats_config.js?version=1.0.9';
+import { CLASSES } from './data.js?version=1.1.0';
+import { POINTS_PER_LEVEL, STAT_COEFFICIENTS, DEFAULT_CLASS_STATS, DEFENSE_CONFIG } from './stats_config.js?version=1.1.0';
 
 export class Player {
     constructor(name, classKey) {
@@ -45,8 +45,8 @@ export class Player {
             accessory: null
         };
         this.inventory = [];
-        // 背包容量（可以調整）
-        this.inventoryLimit = 20;
+        // 背包基礎容量（可以調整）；實際容量會依 VIT 擴充
+        this.baseInventoryLimit = 20;
 
         this._onChanged = null;
     }
@@ -91,6 +91,20 @@ export class Player {
         if (this.equipment.shoes) bonus += this.equipment.shoes.speed || 0;
         if (this.equipment.accessory) bonus += this.equipment.accessory.speed || 0;
         return this.speed + bonus;
+    }
+
+    get effectiveMatk() {
+        // 法術攻擊 = INT 加成 + 武器 matk 屬性
+        let bonus = 0;
+        if (this.equipment.weapon) bonus += this.equipment.weapon.matk || 0;
+        const matkFromInt = Math.floor(this.int * STAT_COEFFICIENTS.INT_MATK_PER_POINT);
+        return matkFromInt + bonus;
+    }
+
+    // 動態背包容量：每 5 點 VIT 增加 1 格（向下取整）
+    get inventoryLimit() {
+        const extra = Math.floor((this.vit || 0) / 5);
+        return Math.max(1, (this.baseInventoryLimit || 20) + extra);
     }
 
     // --- 屬性衍生值 ---
@@ -236,7 +250,8 @@ export class Player {
     levelUp() {
         this.level++;
         this.exp -= this.nextLevelExp;
-        this.nextLevelExp = Math.floor(this.nextLevelExp * 1.5);
+        // 減緩等級需求成長，從原本 x1.5 降為 x1.35（可再微調）
+        this.nextLevelExp = Math.floor(this.nextLevelExp * 1.35);
         this.maxHp += 20;
         // 升級時把血量補滿到套用 VIT 後的上限
         this.hp = this.effectiveMaxHp;

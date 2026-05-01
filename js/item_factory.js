@@ -1,4 +1,4 @@
-import { ITEMS, RARITY } from './data.js?version=1.0.9';
+import { ITEMS, RARITY } from './data.js?version=1.1.0';
 
 // 根據稀有度決定屬性浮動幅度（越稀有，浮動越小）
 const RARITY_VARIANCE = {
@@ -76,6 +76,19 @@ function rollValue(base, variance) {
 // 公式：scaleMultiplier = (1 + ITEM_LEVEL_SCALE)^(level-1)
 // 預設 0.03 表示每等級約 +3% 的指數成長（level 86 時約 x10.1）
 const ITEM_LEVEL_SCALE = 0.035;
+// 計算等級放大倍數：使用混合策略（前期小幅指數成長，後期改為對數補償）
+function computeScaleMultiplier(level) {
+    const lvl = Math.max(1, Number(level) || 1);
+    const baseRate = ITEM_LEVEL_SCALE;
+    const expCap = 20; // 在此等級之前採用指數成長，超過後採用對數緩增
+    if (lvl <= expCap) {
+        return Math.pow(1 + baseRate, lvl - 1);
+    }
+    const expPart = Math.pow(1 + baseRate, expCap - 1);
+    // 對於超過 expCap 的等級，使用 log1p 緩增，0.08 為調整用係數，可微調
+    const extra = 1 + Math.log1p(lvl - expCap) * 0.08;
+    return expPart * extra;
+}
 
 // 產生 item template 的實例（會加入 instanceId 與浮動屬性）
 // opts: { level }
@@ -84,7 +97,7 @@ export function rollItemInstance(template, opts = {}) {
     const rarity = template.rarity || 'common';
     const variance = varianceForRarity(rarity);
     const level = Math.max(1, Number(opts.level) || 1);
-    const scaleMultiplier = Math.pow(1 + ITEM_LEVEL_SCALE, level - 1);
+    const scaleMultiplier = computeScaleMultiplier(level);
 
     // 深拷貝 template
     const inst = JSON.parse(JSON.stringify(template));
@@ -96,6 +109,7 @@ export function rollItemInstance(template, opts = {}) {
     // 先根據等級放大基礎值，再套入浮動
     if (typeof inst.atk === 'number') inst.atk = rollValue(Math.max(0, Math.round(inst.atk * scaleMultiplier)), variance);
     if (typeof inst.def === 'number') inst.def = rollValue(Math.max(0, Math.round(inst.def * scaleMultiplier)), variance);
+    if (typeof inst.matk === 'number') inst.matk = rollValue(Math.max(0, Math.round(inst.matk * scaleMultiplier)), variance);
     if (typeof inst.speed === 'number') inst.speed = rollValue(Math.max(0, Math.round(inst.speed * scaleMultiplier)), variance);
     // 價格稍微隨屬性浮動（最多 ±10%），也放大
     if (typeof inst.price === 'number') {

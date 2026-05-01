@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>勇者養成戰記</title>
-    <link rel="stylesheet" href="css/style.css?version=1.0.9">
+    <link rel="stylesheet" href="css/style.css?version=1.1.0">
 </head>
 <body>
     <div id="game-container">
@@ -53,7 +53,8 @@
                     </div>
                     <div class="collapsible-content" id="player-info"></div>
                     <div class="nav-bar">
-                        <button class="btn" id="btn-go-shop">商店</button>
+                        <button class="btn" id="btn-go-shop">🛒 商店</button>
+                        <button class="btn" id="btn-go-mystery-shop">📦 神秘商店</button>
                     </div>
                 </div>
 
@@ -103,6 +104,14 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 神秘商店區域 -->
+            <div class="mystery-shop-section">
+                <h3 class="shop-title">📦 神秘商店</h3>
+                <div id="mystery-shop-container">
+                    <!-- 神秘商店內容由 JS 產生 -->
+                </div>
+            </div>
         </div>
 
         <!-- 戰鬥場景 -->
@@ -140,6 +149,6 @@
     </div>
 
     <!-- 引入模組化 JS -->
-    <script type="module" src="js/main.js?version=1.0.9"></script>
+    <script type="module" src="js/main.js?version=1.1.0"></script>
 </body>
 </html>

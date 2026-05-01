@@ -23,7 +23,7 @@ export const CLASSES = {
     rogue: {
         name: '盜賊',
         icon: '🗡️',
-        desc: '高閃避與暴击<br>擅長偷襲<br>技能：背刺 - 造成 250% 傷害 + 額外傷害',
+        desc: '高閃避與暴擊<br>擅長偷襲<br>技能：背刺 - 造成 250% 傷害 + 額外傷害',
         baseHp: 100,
         baseAtk: 25,
         baseDef: 7,
@@ -45,27 +45,27 @@ export const RARITY = {
 export const WEAPONS = {
     // 普通
     sword_01: { id: 'sword_01', name: '生鏽的鐵劍', type: 'weapon', atk: 5, price: 50, rarity: 'common', icon: '🗡️' },
-    staff_01: { id: 'staff_01', name: '橡木法杖', type: 'weapon', atk: 8, price: 60, rarity: 'common', icon: '🪄' },
+    staff_01: { id: 'staff_01', name: '橡木法杖', type: 'weapon', atk: 8, matk: 12, price: 60, rarity: 'common', icon: '🪄' },
     dagger_01: { id: 'dagger_01', name: '短匕首', type: 'weapon', atk: 6, price: 55, rarity: 'common', icon: '🔪' },
 
     // 稀有
     sword_02: { id: 'sword_02', name: '鋼製長劍', type: 'weapon', atk: 12, price: 150, rarity: 'uncommon', icon: '⚔️' },
-    staff_02: { id: 'staff_02', name: '銀製魔杖', type: 'weapon', atk: 15, price: 180, rarity: 'uncommon', icon: '✨' },
+    staff_02: { id: 'staff_02', name: '銀製魔杖', type: 'weapon', atk: 15, matk: 25, price: 180, rarity: 'uncommon', icon: '✨' },
     dagger_02: { id: 'dagger_02', name: '鋒利短刀', type: 'weapon', atk: 13, price: 160, rarity: 'uncommon', icon: '🗡️' },
 
     // 極品
     sword_03: { id: 'sword_03', name: '銀月之刃', type: 'weapon', atk: 25, price: 400, rarity: 'rare', icon: '🌙' },
-    staff_03: { id: 'staff_03', name: '水晶法杖', type: 'weapon', atk: 30, price: 450, rarity: 'rare', icon: '💎' },
+    staff_03: { id: 'staff_03', name: '水晶法杖', type: 'weapon', atk: 30, matk: 55, price: 450, rarity: 'rare', icon: '💎' },
     dagger_03: { id: 'dagger_03', name: '暗影刺刀', type: 'weapon', atk: 28, price: 420, rarity: 'rare', icon: '🌑' },
 
     // 傳說
     sword_04: { id: 'sword_04', name: '烈焰聖劍', type: 'weapon', atk: 50, price: 900, rarity: 'epic', icon: '🔥' },
-    staff_04: { id: 'staff_04', name: '元素法杖', type: 'weapon', atk: 55, price: 1000, rarity: 'epic', icon: '🌈' },
+    staff_04: { id: 'staff_04', name: '元素法杖', type: 'weapon', atk: 55, matk: 120, price: 1000, rarity: 'epic', icon: '🌈' },
     dagger_04: { id: 'dagger_04', name: '雷霆匕首', type: 'weapon', atk: 52, price: 950, rarity: 'epic', icon: '⚡' },
 
     // 神話
     sword_05: { id: 'sword_05', name: '龍之怒氣', type: 'weapon', atk: 100, price: 2000, rarity: 'legendary', icon: '🐉' },
-    staff_05: { id: 'staff_05', name: '神諭之杖', type: 'weapon', atk: 110, price: 2200, rarity: 'legendary', icon: '👑' },
+    staff_05: { id: 'staff_05', name: '神諭之杖', type: 'weapon', atk: 110, matk: 250, price: 2200, rarity: 'legendary', icon: '👑' },
     dagger_05: { id: 'dagger_05', name: '時光之刃', type: 'weapon', atk: 105, price: 2100, rarity: 'legendary', icon: '⏳' }
 };
 
@@ -168,6 +168,34 @@ export const ITEMS = {
     ...SHIELDS,
     ...ACCESSORIES
 };
+
+// --- 神秘商店物品定義 ---
+// 神秘商店的「問號」物品模板（購買時隨機拆成其他物品）
+export const MYSTERY_ITEM = {
+    id: 'mystery_item',
+    name: '神秘寶箱',
+    type: 'other',
+    price: 500,
+    rarity: 'epic',
+    icon: '📦',
+    isMystery: true  // 標記為神秘物品
+};
+
+// 將神秘商店物品加入 ITEMS
+ITEMS.mystery_item = MYSTERY_ITEM;
+
+// 高級神秘寶箱（保證極品或以上）
+export const MYSTERY_PREMIUM_ITEM = {
+    id: 'mystery_premium',
+    name: '高級神秘寶箱',
+    type: 'other',
+    price: 2000,
+    rarity: 'legendary',
+    icon: '🧧',
+    isMystery: true
+};
+
+ITEMS.mystery_premium = MYSTERY_PREMIUM_ITEM;
 
 // --- 怪物資料 ---
 export const MONSTER_TYPES = [

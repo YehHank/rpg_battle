@@ -5,6 +5,19 @@ export class SaveManager {
     static save(player, meta = {}) {
         if (!player) return;
         console.log("正在儲存遊戲進度...");
+        // 若先前存檔包含額外狀態（例如 wave），在未明確提供時保留它，避免覆寫
+        try {
+            const raw = localStorage.getItem(SAVE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (typeof parsed.wave !== 'undefined' && typeof meta.wave === 'undefined') {
+                    meta = Object.assign({}, meta, { wave: parsed.wave });
+                }
+            }
+        } catch (e) {
+            // 解析失敗則忽略，繼續正常儲存
+        }
+
         const saveData = {
             name: player.name,
             classKey: player.classKey,

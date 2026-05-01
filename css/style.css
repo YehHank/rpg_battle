@@ -497,7 +497,6 @@ h3 {
 
 /* 讓背包/商店格在內容超出時可滾動 */
 .inventory-grid {
-    max-height: 260px;
     overflow-y: auto;
     padding-right: 6px;
 }
@@ -563,6 +562,28 @@ h3 {
     background: transparent;
     color: #a0a0a0;
     border: 1px solid #2a2a4e;
+}
+
+/* 各稀有度樣式（用於 .rarity-badge.<rarity>） */
+.rarity-badge.uncommon {
+    background: #1aff1a;
+    color: #ffffff;
+    border-color: rgba(0,0,0,0.12);
+}
+.rarity-badge.rare {
+    background: #4a90d9;
+    color: #ffffff;
+    border-color: rgba(0,0,0,0.12);
+}
+.rarity-badge.epic {
+    background: #b06aff;
+    color: #ffffff;
+    border-color: rgba(0,0,0,0.12);
+}
+.rarity-badge.legendary {
+    background: #ffd700;
+    color: #1a1a1a;
+    border-color: rgba(0,0,0,0.12);
 }
 
 /* 物品屬性行 */
@@ -757,6 +778,106 @@ h3 {
     font-weight: 700;
     cursor: pointer;
 }
+
+/* 神秘商店樣式 */
+.mystery-shop-container {
+    background: linear-gradient(135deg, rgba(106, 17, 103, 0.15), rgba(74, 144, 217, 0.1));
+    border: 2px solid #b06aff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 15px;
+    text-align: center;
+}
+
+.mystery-shop-container h3 {
+    margin: 0 0 15px 0;
+    color: #b06aff;
+    font-size: 18px;
+}
+
+.mystery-box {
+    background: #0f0f23;
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 10px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.mystery-box::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(176, 106, 255, 0.1) 0%, transparent 70%);
+    animation: mystery-glow 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes mystery-glow {
+    0%, 100% { transform: rotate(0deg); opacity: 0.5; }
+    50% { transform: rotate(180deg); opacity: 1; }
+}
+
+.mystery-box-icon {
+    font-size: 60px;
+    display: block;
+    margin-bottom: 10px;
+    animation: mystery-bounce 2s ease-in-out infinite;
+}
+
+@keyframes mystery-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.mystery-box-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffd700;
+    margin-bottom: 8px;
+}
+
+.mystery-box-desc {
+    font-size: 14px;
+    color: #a0a0a0;
+    margin-bottom: 15px;
+}
+
+.mystery-box-price {
+    font-size: 16px;
+    color: #ffd700;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.btn-buy-mystery {
+    background: linear-gradient(135deg, #b06aff, #4a90d9);
+    color: #fff;
+    border: none;
+    padding: 12px 30px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-buy-mystery:hover {
+    background: linear-gradient(135deg, #c08aff, #6ab0d9);
+    box-shadow: 0 0 20px rgba(176, 106, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.btn-buy-mystery:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .floating-stop:hover { transform: translateY(-2px); }
 
 
