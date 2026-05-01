@@ -52,13 +52,17 @@ export class BattleEngine {
             this.enemyMapInfo = null;
         }
         this.enemy = { ...monsterTemplate };
-        // 調整 wave 的成長曲線為對數緩增，以避免高層數時數值爆炸
+        // 調整 wave 的成長曲線為對數緩增（提高係數以加強中高層難度），
+        // 並在模板未提供防禦值時，根據 HP 派生一個防禦值，避免玩家單發秒殺
         const wf = Math.max(0, Number(wave) || 0);
-        const waveMultiplier = 1 + Math.log1p(wf) * 0.20; // 可調：0.20 代表對數係數
+        const waveMultiplier = 1 + Math.log1p(wf) * 0.30; // 可調：原本 0.20，調高到 0.30
         this.enemy.hp = Math.floor(this.enemy.hp * waveMultiplier);
         this.enemy.maxHp = this.enemy.hp;
         this.enemy.atk = Math.floor(this.enemy.atk * waveMultiplier);
-        this.enemy.def = this.enemy.def || 0;
+        // 若怪物模板沒有 def，根據最大血量產生防禦值（比例可微調，預設取 8%）
+        if (typeof this.enemy.def === 'undefined' || this.enemy.def === null) {
+            this.enemy.def = Math.floor(this.enemy.maxHp * 0.08);
+        }
         const goldMultiplier = 1 + Math.log1p(wf) * 0.15;
         this.enemy.goldReward = Math.floor(this.enemy.gold * goldMultiplier);
 

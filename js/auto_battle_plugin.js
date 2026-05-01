@@ -45,6 +45,9 @@ const AutoBattlePlugin = (() => {
         modal.innerHTML = `
             <div class="modal-content">
                 <h3>自動刷怪外掛</h3>
+                <div style="display:flex; gap:8px; margin-top:8px; justify-content:center;">
+                    <button class="btn btn-primary" id="btn-auto-tower">🗼 自動爬塔</button>
+                </div>
                 <div style="max-height:320px; overflow:auto; margin-top:8px;">${listHtml}</div>
                 <div style="margin-top:12px; text-align:center;"><button class="btn" id="btn-auto-cancel">取消</button></div>
             </div>`;
@@ -54,6 +57,15 @@ const AutoBattlePlugin = (() => {
         modal.addEventListener('click', (ev) => { if (ev.target === modal) modal.remove(); });
 
         modal.querySelector('#btn-auto-cancel').addEventListener('click', () => modal.remove());
+
+        // 新增：試煉塔自動爬塔按鈕
+        const btnTower = modal.querySelector('#btn-auto-tower');
+        if (btnTower) {
+            btnTower.addEventListener('click', () => {
+                modal.remove();
+                startAutoTower(gameInstance);
+            });
+        }
 
         modal.querySelectorAll('.btn-auto-start').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -156,12 +168,96 @@ const AutoBattlePlugin = (() => {
         }
     }
 
+        // 新增：自動爬塔主流程
+        async function startAutoTower(gameInstance) {
+            if (!gameInstance || !gameInstance.player) {
+                alert('請先建立角色！');
+                return;
+            }
+            if (running) {
+                console.warn('自動刷怪外掛已在執行中');
+                return;
+            }
+            running = true;
+            createStopButton();
+            showStopButton(true);
+
+            // 監聽器：在戰鬥中自動嘗試攻擊
+            const monitor = (async () => {
+                while (running) {
+                    if (!gameInstance || !gameInstance.battle) {
+                        await new Promise(r => setTimeout(r, 120));
+                        continue;
+                    }
+                    while (running && gameInstance.battle && !gameInstance.battle.isBattleOver) {
+                        try {
+                            if (gameInstance.battle.isPlayerTurn && gameInstance.battle.enemy) {
+                                gameInstance.battle.handleAction('attack');
+                                await new Promise(r => setTimeout(r, 100));
+                            }
+                        } catch (e) {
+                            console.error('AutoBattle monitor error', e);
+                        }
+                        await new Promise(r => setTimeout(r, 150));
+                    }
+                    await new Promise(r => setTimeout(r, 200));
+                }
+            })();
+
+            try {
+                while (running) {
+                    if (!running) break;
+                    let result = false;
+                    try {
+                        if (typeof gameInstance.startTowerBattle === 'function') {
+                            result = await gameInstance.startTowerBattle();
+                        } else if (gameInstance.battle && typeof gameInstance.battle.startBattle === 'function') {
+                            result = await gameInstance.battle.startBattle(gameInstance.wave, gameInstance, { mode: 'tower' });
+                        }
+                    } catch (e) {
+                        console.error('啟動試煉塔失敗', e);
+                        result = false;
+                    }
+
+                    if (!running) break;
+
+                    if (result) {
+                        // 勝利：嘗試自動關閉戰鬥結果並回到主畫面
+                        try {
+                            const returnBtn = document.getElementById('btn-return-game');
+                            if (returnBtn) {
+                                try { returnBtn.click(); } catch (e) { console.warn('模擬點擊返回按鈕失敗', e); }
+                            } else {
+                                if (gameInstance && gameInstance.ui) {
+                                    gameInstance.ui.showScene('game');
+                                    gameInstance.updateMainUI();
+                                }
+                            }
+                            const br = document.getElementById('battle-result-container');
+                            if (br) br.innerHTML = '';
+                        } catch (e) { console.error(e); }
+                        await new Promise(r => setTimeout(r, 300));
+                        continue; // 繼續下一層
+                    } else {
+                        // 戰敗：停止自動爬塔，保留戰鬥結果供使用者處理
+                        console.warn('自動爬塔：在某一層戰敗，已停止自動模式。');
+                        running = false;
+                        break;
+                    }
+                }
+            } finally {
+                try { await monitor; } catch (e) { /* ignore */ }
+                showStopButton(false);
+                running = false;
+            }
+        }
+
     function stopAutoBattle() {
         running = false;
         showStopButton(false);
     }
 
-    return { openModal, start: startAutoBattle, stop: stopAutoBattle, isRunning: () => running };
+    return { openModal, start: startAutoBattle, startTower: startAutoTower, stop: stopAutoBattle, isRunning: () => running };
 })();
 
 export default AutoBattlePlugin;

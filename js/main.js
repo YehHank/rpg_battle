@@ -531,7 +531,7 @@ class Game {
 
     // 啟動試煉塔（以 wave 作為塔層）
     async startTowerBattle() {
-        if (!this.player) return;
+        if (!this.player) return false;
         console.log(`啟動試煉塔 第 ${this.wave + 1} 層...`);
         this.ui.showScene('battle');
         const result = await this.battle.startBattle(this.wave, this, { mode: 'tower' });
@@ -541,6 +541,7 @@ class Game {
             this.wave = Math.max(1, this.wave - 1);
         }
         SaveManager.save(this.player, { wave: this.wave });
+        return result;
     }
 
     // 在選定地圖上開始一次刷怪（單次），可重複由使用者再次啟動
