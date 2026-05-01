@@ -1,4 +1,4 @@
-import { ITEMS, RARITY } from './data.js?version=1.1.1';
+import { ITEMS, RARITY } from './data.js?version=1.1.2';
 
 // 根據稀有度決定屬性浮動幅度（越稀有，浮動越小）
 const RARITY_VARIANCE = {
@@ -99,11 +99,10 @@ function computeScaleMultiplier(level) {
         baseScale = expPart * extra;
     }
 
-    // 101 層以上：tier 階段指數放大，與怪物 ATK 成長同步
+    // 101 層以上：固定使用 tier 1 的倍率（×4），不隨層數繼續放大
+    // 設計用意：裝備強度維持在一個可控範圍，玩家需要升級素質與搭配才能應付高層
     if (lvl > 100) {
-        const tier = Math.ceil((lvl - 100) / 10);
-        // 乘上 2^(tier+1)：tier1=×4, tier2=×8, tier3=×16, tier5=×64, tier10=×2048
-        baseScale *= Math.pow(2, tier + 1);
+        baseScale *= Math.pow(2, 1 + 1); // 固定 tier=1 → ×4
     }
 
     return baseScale;

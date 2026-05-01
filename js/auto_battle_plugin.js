@@ -1,4 +1,4 @@
-import { MAPS } from './data.js?version=1.1.1';
+import { MAPS } from './data.js?version=1.1.2';
 
 const AutoBattlePlugin = (() => {
     let running = false;

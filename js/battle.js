@@ -1,6 +1,6 @@
-import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.1.1';
-import { rollItemInstance } from './item_factory.js?version=1.1.1';
-import { ATTACK_CONFIG, STAT_COEFFICIENTS } from './stats_config.js?version=1.1.1';
+import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.1.2';
+import { rollItemInstance } from './item_factory.js?version=1.1.2';
+import { ATTACK_CONFIG, STAT_COEFFICIENTS } from './stats_config.js?version=1.1.2';
 
 export class BattleEngine {
     constructor(player, ui) {

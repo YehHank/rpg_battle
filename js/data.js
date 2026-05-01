@@ -288,8 +288,8 @@ export function getMonsterTemplateForWave(wave) {
 
         template.hp    = Math.floor((template.hp    || 1) * hpMultiplier);
         template.atk   = Math.floor((template.atk   || 1) * atkMultiplier);
-        // 速度每階段 +2，上限 60（加快敵人行動頻率）
-        template.speed = Math.min(60, (template.speed || 4) + tier * 2);
+        // 速度每階段 +2，上限 100（加快敵人行動頻率）
+        template.speed = Math.min(100, (template.speed || 4) + tier * 2);
         template.exp   = Math.max(1,  Math.floor((template.exp   || 0) * hpMultiplier));
         template.gold  = Math.max(0,  Math.floor((template.gold  || 0) * hpMultiplier));
         template.dropRate = Math.min(0.95, (template.dropRate || 0) + tier * 0.04);
