@@ -222,11 +222,8 @@ export const MONSTER_TYPES = [
     // 等級 51+：Boss 區域
     { name: '龍', icon: '🐉', hp: 1000, atk: 80, speed: 20, exp: 500, gold: 300, dropRate: 0.50, drops: ['sword_05', 'armor_05', 'shield_05'] },
     { name: '魔王', icon: '👿', hp: 1200, atk: 90, speed: 15, exp: 600, gold: 400, dropRate: 0.55, drops: ['staff_05', 'helm_05', 'accessory_05'] },
-    { name: '神話盜魁', icon: '🎭', hp: 900, atk: 85, speed: 30, exp: 550, gold: 350, dropRate: 0.50, drops: ['dagger_05', 'shoes_05'] }
-];
+    { name: '神話盜魁', icon: '🎭', hp: 900, atk: 85, speed: 30, exp: 550, gold: 350, dropRate: 0.50, drops: ['dagger_05', 'shoes_05'] },
 
-// --- 新增高等區域怪物（51+） ---
-MONSTER_TYPES.push(
     // 深淵區域 (51-70)
     { name: '深淵巡行者', icon: '🌊', hp: 1400, atk: 95, speed: 22, exp: 700, gold: 400, dropRate: 0.40, drops: ['sword_04', 'accessory_04', 'shield_04'] },
     { name: '腐化巨像', icon: '🗿', hp: 2200, atk: 110, speed: 8, exp: 900, gold: 500, dropRate: 0.45, drops: ['armor_04', 'helm_04'] },
@@ -240,7 +237,7 @@ MONSTER_TYPES.push(
     { name: '天界守衛', icon: '👼', hp: 5000, atk: 160, speed: 30, exp: 2000, gold: 1500, dropRate: 0.60, drops: ['helm_05', 'accessory_05'] },
     { name: '終焉龍王', icon: '🐲', hp: 8000, atk: 220, speed: 20, exp: 5000, gold: 3000, dropRate: 0.70, drops: ['sword_05', 'armor_05', 'shield_05'] },
     { name: '虛空終結者', icon: '🌌', hp: 6500, atk: 180, speed: 28, exp: 3200, gold: 1800, dropRate: 0.65, drops: ['dagger_05', 'staff_05'] }
-);
+];
 
 // 提供依照波數（wave, 0-based）挑選怪物的工具函式
 // 地圖/區域定義 (可擴充)
@@ -251,7 +248,16 @@ export const MAPS = [
     { key: 'dungeon', name: '地下城', min: 31, max: 50, indices: [9,10,11] },
     { key: 'abyss', name: '深淵', min: 51, max: 70, indices: [12,13,14] },
     { key: 'void', name: '虛空', min: 71, max: 85, indices: [15,16] },
-    { key: 'heaven', name: '天界', min: 86, max: Infinity, indices: [17,18,19] }
+    { key: 'heaven', name: '天界', min: 86, max: 100, indices: [17,18,19] },
+    { key: 'village_higher', name: '高級新手村', min: 101, max: 105, indices: [0,1,2] },
+    { key: 'forest_higher', name: '高級森林', min: 106, max: 115, indices: [3,4,5] },
+    { key: 'cave_higher', name: '高級洞穴', min: 116, max: 130, indices: [6,7,8] },
+    { key: 'dungeon_higher', name: '高級地下城', min: 131, max: 150, indices: [9,10,11] },
+    { key: 'abyss_higher', name: '深淵進階', min: 151, max: 170, indices: [12,13,14] },
+    { key: 'void_higher', name: '虛空深處', min: 171, max: 185, indices: [15,16] },
+    { key: 'heaven_higher', name: '天界進階', min: 186, max: 200, indices: [17,18,19] },
+    // 超過 200 則使用最高階區域作為預設（保護性回退）
+    { key: 'cosmic', name: '宇宙之境', min: 201, max: Infinity, indices: [20,21,22] }
 ];
 
 export function getMonsterTemplateForWave(wave) {
@@ -264,7 +270,31 @@ export function getMonsterTemplateForWave(wave) {
     } else {
         chosenIndex = Math.floor(Math.random() * MONSTER_TYPES.length);
     }
-    return { ...MONSTER_TYPES[chosenIndex] };
+    // 回傳模板的淺拷貝，並在 100 層以上套用額外素質加強
+    const template = { ...MONSTER_TYPES[chosenIndex] };
+    if (level >= 101) {
+        // 每 10 層一個階段（tier 1 = 101-110, tier 2 = 111-120, ...）
+        const tier = Math.ceil((level - 100) / 10);
+
+        // HP/EXP/GOLD：以 2^(tier+3) 做指數成長
+        //   tier 1 = ×16, tier 2 = ×32, tier 3 = ×64, tier 5 = ×256, tier 10 = ×8192
+        // 設計用意：天界 HP ~5000 vs 新手村 HP ~50（差距約 100×），
+        //   tier 3 起大致追平天界難度，tier 5+ 開始顯著超越
+        const hpMultiplier  = Math.pow(2, tier + 3);
+
+        // ATK：以 2^(tier+1) 較緩成長，避免低層數時秒殺玩家
+        //   tier 1 = ×4, tier 2 = ×8, tier 3 = ×16, tier 5 = ×64
+        const atkMultiplier = Math.pow(2, tier + 1);
+
+        template.hp    = Math.floor((template.hp    || 1) * hpMultiplier);
+        template.atk   = Math.floor((template.atk   || 1) * atkMultiplier);
+        // 速度每階段 +2，上限 60（加快敵人行動頻率）
+        template.speed = Math.min(60, (template.speed || 4) + tier * 2);
+        template.exp   = Math.max(1,  Math.floor((template.exp   || 0) * hpMultiplier));
+        template.gold  = Math.max(0,  Math.floor((template.gold  || 0) * hpMultiplier));
+        template.dropRate = Math.min(0.95, (template.dropRate || 0) + tier * 0.04);
+    }
+    return template;
 }
 
 export function getRandomMonsterFromMap(mapKey) {

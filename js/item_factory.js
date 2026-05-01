@@ -1,4 +1,4 @@
-import { ITEMS, RARITY } from './data.js?version=1.1.0';
+import { ITEMS, RARITY } from './data.js?version=1.1.1';
 
 // 根據稀有度決定屬性浮動幅度（越稀有，浮動越小）
 const RARITY_VARIANCE = {
@@ -74,20 +74,39 @@ function rollValue(base, variance) {
 
 // 每等級物品屬性放大百分比（指數成長）
 // 公式：scaleMultiplier = (1 + ITEM_LEVEL_SCALE)^(level-1)
-// 預設 0.03 表示每等級約 +3% 的指數成長（level 86 時約 x10.1）
 const ITEM_LEVEL_SCALE = 0.035;
-// 計算等級放大倍數：使用混合策略（前期小幅指數成長，後期改為對數補償）
+
+// 計算等級放大倍數
+// ‧ 1-20 層：指數成長（~1.035^level）
+// ‧ 21-100 層：改為對數補償，避免數值過早爆炸
+// ‧ 101+ 層：與怪物素質公式同步（每 10 層一個 tier）：
+//     物品以 2^(tier+1) 放大，對應怪物 ATK 的 2^(tier+1)
+//     tier 1 = ×4, tier 2 = ×8, tier 3 = ×16, tier 5 = ×64
+//   設計用意：確保高層掉落/開箱的裝備足以應付同層怪物
 function computeScaleMultiplier(level) {
     const lvl = Math.max(1, Number(level) || 1);
-    const baseRate = ITEM_LEVEL_SCALE;
-    const expCap = 20; // 在此等級之前採用指數成長，超過後採用對數緩增
+    const expCap = 20;
+
+    // 先算 1-100 的基礎縮放
+    let baseScale;
     if (lvl <= expCap) {
-        return Math.pow(1 + baseRate, lvl - 1);
+        baseScale = Math.pow(1 + ITEM_LEVEL_SCALE, lvl - 1);
+    } else {
+        const expPart = Math.pow(1 + ITEM_LEVEL_SCALE, expCap - 1);
+        // 對數補償僅計算到第 100 層，超過後由 tier 接管
+        const clampedLvl = Math.min(lvl, 100);
+        const extra = 1 + Math.log1p(clampedLvl - expCap) * 0.08;
+        baseScale = expPart * extra;
     }
-    const expPart = Math.pow(1 + baseRate, expCap - 1);
-    // 對於超過 expCap 的等級，使用 log1p 緩增，0.08 為調整用係數，可微調
-    const extra = 1 + Math.log1p(lvl - expCap) * 0.08;
-    return expPart * extra;
+
+    // 101 層以上：tier 階段指數放大，與怪物 ATK 成長同步
+    if (lvl > 100) {
+        const tier = Math.ceil((lvl - 100) / 10);
+        // 乘上 2^(tier+1)：tier1=×4, tier2=×8, tier3=×16, tier5=×64, tier10=×2048
+        baseScale *= Math.pow(2, tier + 1);
+    }
+
+    return baseScale;
 }
 
 // 產生 item template 的實例（會加入 instanceId 與浮動屬性）

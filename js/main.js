@@ -1,10 +1,10 @@
-import { CLASSES, ITEMS } from './data.js?version=1.1.0';
-import { generateShopVariants, rollItemInstance } from './item_factory.js?version=1.1.0';
-import { Player } from './player.js?version=1.1.0';
-import { BattleEngine } from './battle.js?version=1.1.0';
-import { UIManager } from './ui.js?version=1.1.0';
-import { SaveManager } from './save_manager.js?version=1.1.0';
-import { POINTS_PER_LEVEL } from './stats_config.js?version=1.1.0';
+import { CLASSES, ITEMS } from './data.js?version=1.1.1';
+import { generateShopVariants, rollItemInstance } from './item_factory.js?version=1.1.1';
+import { Player } from './player.js?version=1.1.1';
+import { BattleEngine } from './battle.js?version=1.1.1';
+import { UIManager } from './ui.js?version=1.1.1';
+import { SaveManager } from './save_manager.js?version=1.1.1';
+import { POINTS_PER_LEVEL } from './stats_config.js?version=1.1.1';
 import AutoBattlePlugin from './auto_battle_plugin.js?version=1.0.0';
 
 class Game {

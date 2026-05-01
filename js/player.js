@@ -1,5 +1,5 @@
-import { CLASSES } from './data.js?version=1.1.0';
-import { POINTS_PER_LEVEL, STAT_COEFFICIENTS, DEFAULT_CLASS_STATS, DEFENSE_CONFIG } from './stats_config.js?version=1.1.0';
+import { CLASSES } from './data.js?version=1.1.1';
+import { POINTS_PER_LEVEL, STAT_COEFFICIENTS, DEFAULT_CLASS_STATS, DEFENSE_CONFIG } from './stats_config.js?version=1.1.1';
 
 export class Player {
     constructor(name, classKey) {
