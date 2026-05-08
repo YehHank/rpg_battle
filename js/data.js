@@ -1,3 +1,5 @@
+import { BOSS_CONFIG } from './stats_config.js?version=1.1.3';
+
 // 職業資料
 export const CLASSES = {
     warrior: {
@@ -260,6 +262,21 @@ export const MAPS = [
     { key: 'cosmic', name: '宇宙之境', min: 201, max: Infinity, indices: [20,21,22] }
 ];
 
+/**
+ * 階梯式怪物成長公式
+ * regionMult = 1.5^(floor((level-1)/20))   — 20層一大區
+ * stepMult   = 1 + floor(((level-1)%20)/5)*0.2 — 5層一小階
+ * linearMult = 1 + (level-1)*0.05           — 線性微調
+ * scale = regionMult * stepMult * linearMult
+ */
+export function computeMonsterScale(level) {
+    const lv = Math.max(1, level);
+    const regionMult = Math.pow(1.5, Math.floor((lv - 1) / 20));
+    const stepMult = 1 + Math.floor(((lv - 1) % 20) / 5) * 0.2;
+    const linearMult = 1 + (lv - 1) * 0.05;
+    return regionMult * stepMult * linearMult;
+}
+
 export function getMonsterTemplateForWave(wave) {
     const level = Math.max(1, (Number(wave) || 0) + 1);
     const pool = MAPS.find(p => level >= p.min && level <= p.max) || MAPS[0];
@@ -270,26 +287,68 @@ export function getMonsterTemplateForWave(wave) {
     } else {
         chosenIndex = Math.floor(Math.random() * MONSTER_TYPES.length);
     }
-    // 回傳模板的淺拷貝，並在 100 層以上套用額外素質加強
-    const template = { ...MONSTER_TYPES[chosenIndex] };
-    if (level >= 101) {
 
-        const multiplier  = 1 + Math.ceil((level - 100) / 100);
+    const base = MONSTER_TYPES[chosenIndex];
+    const scale = computeMonsterScale(level);
+    const template = {
+        ...base,
+        hp: Math.floor((base.hp || 50) * scale),
+        atk: Math.floor((base.atk || 10) * scale),
+        def: Math.floor((base.hp || 50) * 0.08 * scale), // 基礎防禦：HP 的 8% * scale
+        speed: Math.max(1, Math.floor((base.speed || 5) * Math.sqrt(scale))),
+        exp: Math.floor(20 * scale),
+        gold: Math.floor(8 * scale),
+        level: level,
+        isBoss: false,
+        affixes: []
+    };
 
-        template.hp    = 3000 + Math.floor((template.hp    || 1) * multiplier);
-        template.atk   = 200 + Math.floor((template.atk   || 1) * multiplier);
-        template.speed = 50 + Math.min(100, (template.speed || 4) * multiplier);
-        template.exp   = 3000 + Math.max(1,  Math.floor((template.exp   || 0) * multiplier));
-        template.gold  = 2000 + Math.max(0,  Math.floor((template.gold  || 0) * multiplier));
-        template.dropRate = Math.min(0.95, (template.dropRate || 0) + multiplier * 0.04);
+    // Boss 判定：每 BOSS_CONFIG.FLOOR_INTERVAL 層出現 Boss
+    if (level % BOSS_CONFIG.FLOOR_INTERVAL === 0) {
+        template.isBoss = true;
+        template.hp = Math.floor(template.hp * BOSS_CONFIG.HP_MULT);
+        template.def = Math.floor(template.def * BOSS_CONFIG.DEF_MULT);
+        template.atk = Math.floor(template.atk * BOSS_CONFIG.ATK_MULT);
+        template.exp = Math.floor(template.exp * BOSS_CONFIG.EXP_MULT);
+        template.gold = Math.floor(template.gold * BOSS_CONFIG.GOLD_MULT);
+        template.name = `👑 ${template.name}`;
+        // 隨機詞綴（1~2個）
+        const numAffixes = 1 + (Math.random() < 0.3 ? 1 : 0);
+        const shuffled = [...BOSS_CONFIG.AFFIXES].sort(() => Math.random() - 0.5);
+        for (let i = 0; i < numAffixes && i < shuffled.length; i++) {
+            const affix = shuffled[i];
+            template[affix.effect] = Math.floor((template[affix.effect] || 0) * affix.mult);
+            template.affixes.push(affix);
+            template.name += ` ${affix.icon}`;
+        }
     }
+
     return template;
 }
 
 export function getRandomMonsterFromMap(mapKey) {
     const map = MAPS.find(m => m.key === mapKey) || MAPS[0];
     const indices = (map.indices || []).filter(i => i >= 0 && i < MONSTER_TYPES.length);
-    if (indices.length === 0) return { ...MONSTER_TYPES[Math.floor(Math.random() * MONSTER_TYPES.length)] };
-    const idx = indices[Math.floor(Math.random() * indices.length)];
-    return { ...MONSTER_TYPES[idx] };
+    let chosenIndex;
+    if (indices.length === 0) {
+        chosenIndex = Math.floor(Math.random() * MONSTER_TYPES.length);
+    } else {
+        chosenIndex = indices[Math.floor(Math.random() * indices.length)];
+    }
+    const base = MONSTER_TYPES[chosenIndex];
+    // 區域固定等級：使用地圖等級範圍的中位數作為 scale 基準
+    const zoneLevel = Math.floor((map.min + Math.min(map.max, 200)) / 2);
+    const scale = computeMonsterScale(zoneLevel);
+    return {
+        ...base,
+        hp: Math.floor((base.hp || 50) * scale),
+        atk: Math.floor((base.atk || 10) * scale),
+        def: Math.floor((base.hp || 50) * 0.08 * scale),
+        speed: Math.max(1, Math.floor((base.speed || 5) * Math.sqrt(scale))),
+        exp: Math.floor(20 * scale),
+        gold: Math.floor(8 * scale),
+        level: zoneLevel,
+        isBoss: false,
+        affixes: []
+    };
 }
