@@ -425,6 +425,22 @@ h3 {
     background: linear-gradient(90deg, #44ff44, #66ff66);
 }
 
+/* SP (魔力) 條 */
+.sp-bar-container {
+    height: 14px;
+    margin: 4px auto;
+}
+
+.sp-bar {
+    background: linear-gradient(90deg, #4488ff, #66aaff) !important;
+}
+
+.sp-text {
+    font-size: 11px;
+    color: #88aaff;
+    margin-top: 0;
+}
+
 .equip-slot {
     background: #0f0f23;
     border: 2px solid #2a2a4e;
