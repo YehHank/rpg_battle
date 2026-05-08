@@ -493,6 +493,9 @@ class Game {
                         loadedPlayer.dex = typeof savedData.dex !== 'undefined' ? savedData.dex : loadedPlayer.dex;
                         loadedPlayer.luk = typeof savedData.luk !== 'undefined' ? savedData.luk : loadedPlayer.luk;
                         loadedPlayer.statPointsAvailable = typeof savedData.statPointsAvailable !== 'undefined' ? savedData.statPointsAvailable : 0;
+                        // SP 恢復
+                        loadedPlayer.maxSp = typeof savedData.maxSp !== 'undefined' ? savedData.maxSp : 30;
+                        loadedPlayer.sp = typeof savedData.sp !== 'undefined' ? savedData.sp : loadedPlayer.effectiveMaxSp;
                     } else {
                         // 舊存檔：沒有素質資料，將所有素質設為 0 並給予補償點數
                         loadedPlayer.str = 0;
@@ -506,6 +509,10 @@ class Game {
 
                     this.player = loadedPlayer;
                 console.log("玩家實例重建成功:", this.player);
+
+                // 載入存檔後 HP/SP 回滿（休閒友好）
+                this.player.hp = this.player.effectiveMaxHp;
+                this.player.sp = this.player.effectiveMaxSp;
 
                 // 復原波數（如有）
                 this.wave = savedData.wave || 0;
@@ -537,9 +544,8 @@ class Game {
         const result = await this.battle.startBattle(this.wave, this, { mode: 'tower' });
         if (result) {
             this.wave++;
-        } else {
-            this.wave = Math.max(1, this.wave - 1);
         }
+        // 戰敗不在這裡退回（由自動刷怪系統或手動操作處理）
         SaveManager.save(this.player, { wave: this.wave });
         return result;
     }
