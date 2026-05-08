@@ -1,6 +1,6 @@
-import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS } from './data.js?version=1.1.3';
+import { MONSTER_TYPES, ITEMS, getMonsterTemplateForWave, getRandomMonsterFromMap, MAPS, computeMonsterScale } from './data.js?version=1.1.3';
 import { rollItemInstance } from './item_factory.js?version=1.1.3';
-import { ATTACK_CONFIG, STAT_COEFFICIENTS } from './stats_config.js?version=1.1.3';
+import { DEFENSE_CONFIG, LEVEL_PENALTY_CONFIG, STAT_COEFFICIENTS } from './stats_config.js?version=1.1.3';
 
 export class BattleEngine {
     constructor(player, ui) {
@@ -39,8 +39,7 @@ export class BattleEngine {
             battleLog.innerHTML = '';
         }
 
-        // 恢復玩家滿 HP（使用 VIT 加成後的實際上限）
-        this.player.hp = this.player.effectiveMaxHp;
+        // 不再每場戰鬥前回滿 HP；只有升級和死亡重生才回滿
 
         // 選怪：若是地圖模式 (opts.mode === 'map' 且有 mapKey)，則從該地圖隨機挑怪
         let monsterTemplate;
@@ -52,19 +51,16 @@ export class BattleEngine {
             this.enemyMapInfo = null;
         }
         this.enemy = { ...monsterTemplate };
-        // 調整 wave 的成長曲線為對數緩增（提高係數以加強中高層難度），
-        // 並在模板未提供防禦值時，根據 HP 派生一個防禦值，避免玩家單發秒殺
-        const wf = Math.max(0, Number(wave) || 0);
-        const waveMultiplier = 1 + Math.log1p(wf) * 0.30; // 可調：原本 0.20，調高到 0.30
-        this.enemy.hp = Math.floor(this.enemy.hp * waveMultiplier);
         this.enemy.maxHp = this.enemy.hp;
-        this.enemy.atk = Math.floor(this.enemy.atk * waveMultiplier);
-        // 若怪物模板沒有 def，根據最大血量產生防禦值（比例可微調，預設取 8%）
+        // 確保怪物有等級屬性（用於等級壓制計算）
+        if (!this.enemy.level) {
+            this.enemy.level = Math.max(1, (Number(wave) || 0) + 1);
+        }
+        // 確保怪物有防禦值
         if (typeof this.enemy.def === 'undefined' || this.enemy.def === null) {
             this.enemy.def = Math.floor(this.enemy.maxHp * 0.08);
         }
-        const goldMultiplier = 1 + Math.log1p(wf) * 0.15;
-        this.enemy.goldReward = Math.floor(this.enemy.gold * goldMultiplier);
+        this.enemy.goldReward = this.enemy.gold || 0;
 
         if (opts.mode === 'map' && this.enemyMapInfo) {
             console.log(`地圖 ${this.enemyMapInfo.name} 開始！敵人是: ${this.enemy.name}`);
@@ -142,13 +138,14 @@ export class BattleEngine {
         if (!this.isPlayerTurn || this.isBattleOver) return;
         // 在處理動作時暫時鎖按鈕以防止重複點擊
         try { this.ui.setBattleButtonsEnabled(false); } catch (e) { /* ignore */ }
+        let actionResult;
         try {
             switch (actionType) {
                 case 'attack':
                     await this.playerAttack();
                     break;
                 case 'skill':
-                    await this.playerSkill();
+                    actionResult = await this.playerSkill();
                     break;
                 case 'defend':
                     await this.playerDefend();
@@ -161,9 +158,10 @@ export class BattleEngine {
             console.error("處理動作時發生錯誤:", error);
         }
 
+        // SP 不足時 playerSkill 回傳 'sp_fail'，不消耗行動（由 playerSkill 內部重新啟用按鈕等待重選）
+        if (actionResult === 'sp_fail') return;
+
         // 玩家做了動作後不論是否造成戰鬥結束，都應解除 startBattle 中的等待。
-        // 這樣當玩家的動作直接擊敗敵人時，waitForPlayer() 不會永遠懸而未決，
-        // handleTraining() 才能在 startBattle 返回後遞增波數。
         if (this.resolvePlayerTurn) {
             try {
                 this.resolvePlayerTurn();
@@ -178,31 +176,101 @@ export class BattleEngine {
     }
 
     async playerAttack() {
-        const atkScale = (ATTACK_CONFIG && ATTACK_CONFIG.ATK_SCALE) ? ATTACK_CONFIG.ATK_SCALE : 50;
-        const base = Math.max(1, Math.floor(this.player.totalAtk * (atkScale / (atkScale + (this.enemy.def || 0)))));
+        // 命中判定
+        if (Math.random() > (this.player.effectiveAccuracy || 1)) {
+            this.ui.logCombat(`${this.player.name} 的攻擊落空了！`, 'system');
+            if (this.ui && typeof this.ui.showFloatingDamage === 'function') {
+                this.ui.showFloatingDamage('enemy-combatant', 'Miss', { isCrit: false });
+            }
+            return;
+        }
+        const damage = this.calcPlayerDamage(1.0);
         const isCrit = Math.random() < (this.player.critChance || 0);
-        const finalDmg = isCrit ? Math.floor(base * this.player.critMultiplier) : base;
+        const finalDmg = isCrit ? Math.floor(damage * this.player.critMultiplier) : damage;
         this.ui.logCombat(`${this.player.name} 發動了攻擊！${isCrit ? '（暴擊！）' : ''}`, 'combat');
         await this.executeAttack('enemy', finalDmg, isCrit);
     }
 
     async playerSkill() {
         const skillMultiplier = 1.5;
-        const atkScale = (ATTACK_CONFIG && ATTACK_CONFIG.ATK_SCALE) ? ATTACK_CONFIG.ATK_SCALE : 50;
-        // 如果是法師，讓技能參考 effectiveMatk（INT 加成 + 法杖 matk），同時保留少量物理 ATK 加成
+        const spCost = 10; // 技能 SP 消耗
+
+        // 檢查 SP 是否足夠 — 不足時不消耗行動回合
+        if (!this.player.consumeSp(spCost)) {
+            this.ui.logCombat(`${this.player.name} 魔力不足，無法使用技能！`, 'error');
+            // 重新啟用按鈕讓玩家重新選擇行動（resolvePlayerTurn 保留，等下次行動使用）
+            this.ui.setBattleButtonsEnabled(true);
+            return 'sp_fail';
+        }
+
+        // 命中判定
+        if (Math.random() > (this.player.effectiveAccuracy || 1)) {
+            this.ui.logCombat(`${this.player.name} 的技能落空了！`, 'system');
+            if (this.ui && typeof this.ui.showFloatingDamage === 'function') {
+                this.ui.showFloatingDamage('enemy-combatant', 'Miss', { isCrit: false });
+            }
+            return;
+        }
+
+        // 如果是法師，技能參考 effectiveMatk
         let raw;
         if (this.player && this.player.classKey === 'mage') {
             const matk = this.player.effectiveMatk || 0;
-            const physContribution = Math.floor((this.player.totalAtk || 0) * 0.15); // 15% 物理攻擊微量加成
+            const physContribution = Math.floor((this.player.totalAtk || 0) * 0.15);
             raw = Math.floor((matk + physContribution) * skillMultiplier);
         } else {
             raw = Math.floor(this.player.totalAtk * skillMultiplier);
         }
-        const base = Math.max(1, Math.floor(raw * (atkScale / (atkScale + (this.enemy.def || 0)))));
+
+        // 套用防禦減傷與等級壓制
+        const damage = this.applyDefenseAndPenalty(raw, this.player.level, this.enemy.def, this.enemy.level);
         const isCrit = Math.random() < (this.player.critChance || 0);
-        const finalDmg = isCrit ? Math.floor(base * this.player.critMultiplier) : base;
+        const finalDmg = isCrit ? Math.floor(damage * this.player.critMultiplier) : damage;
         this.ui.logCombat(`${this.player.name} 使用了技能 ${this.player.skillName}！💥${isCrit ? '（暴擊！）' : ''}`, 'combat');
         await this.executeAttack('enemy', finalDmg, isCrit);
+    }
+
+    /**
+     * 計算玩家對怪物的傷害（含防禦減傷+等級壓制）
+     * @param {number} skillMult - 技能倍率（普攻=1.0）
+     */
+    calcPlayerDamage(skillMult = 1.0) {
+        const rawAtk = Math.floor(this.player.totalAtk * skillMult);
+        return this.applyDefenseAndPenalty(rawAtk, this.player.level, this.enemy.def, this.enemy.level);
+    }
+
+    /**
+     * 通用防禦減傷 + 等級壓制計算
+     * 防禦因子 = DEF / (DEF + 100 + 攻擊方等級 * 10)
+     * 等級壓制 = max(0.1, 1 - (防禦方等級 - 攻擊方等級) * 0.03)
+     * 防禦穿透（DEX 溢出）：減少防禦方有效 DEF
+     */
+    applyDefenseAndPenalty(rawDmg, attackerLevel, defenderDef, defenderLevel) {
+        const atkLv = Math.max(1, attackerLevel || 1);
+        let defVal = Math.max(0, defenderDef || 0);
+        const defLv = Math.max(1, defenderLevel || 1);
+
+        // 防禦穿透：DEX 溢出轉化（僅限玩家攻擊怪物時）
+        const armorPen = this.player ? (this.player.armorPenetration || 0) : 0;
+        if (armorPen > 0) {
+            defVal = Math.max(0, Math.floor(defVal * (1 - armorPen)));
+        }
+
+        const baseDef = DEFENSE_CONFIG.BASE_DEF_SCALE || 100;
+        const lvDef = DEFENSE_CONFIG.LEVEL_DEF_SCALE || 10;
+        const defenseFactor = defVal / (defVal + baseDef + atkLv * lvDef);
+        const afterDefense = 1 - defenseFactor;
+
+        // 等級壓制
+        let levelPenalty = 1;
+        const levelGap = defLv - atkLv;
+        if (levelGap > 0) {
+            const penaltyRate = LEVEL_PENALTY_CONFIG.PENALTY_PER_LEVEL || 0.03;
+            const minMult = LEVEL_PENALTY_CONFIG.MIN_PENALTY_MULT || 0.1;
+            levelPenalty = Math.max(minMult, 1 - levelGap * penaltyRate);
+        }
+
+        return Math.max(1, Math.floor(rawDmg * afterDefense * levelPenalty));
     }
 
     async playerDefend() {
@@ -233,7 +301,8 @@ export class BattleEngine {
                 await this.handleEnemyDeath();
             }
         } else if (targetType === 'player') {
-            const actualDmg = this.player.takeDamage(damage);
+            // 傳遞敵人等級給 takeDamage 用於等級壓制計算
+            const actualDmg = this.player.takeDamage(damage, this.enemy.level || 1);
             this.ui.shakeElement('player-combatant');
             if (actualDmg === 0) {
                 this.ui.logCombat(`${this.player.name} 閃避了攻擊！`, 'system');
@@ -281,12 +350,11 @@ export class BattleEngine {
             this._isDefending = false;
         }
 
-        // 傳遞原始傷害，由 Player.takeDamage() 使用比例化防禦公式計算實際承受量
+        // 傳遞敵人等級，由 Player.takeDamage() 使用新防禦公式計算實際承受量
         this.ui.logCombat(`${this.enemy.name} 發動攻擊！`, 'combat');
         await this.executeAttack('player', damage);
 
         if (this.player.hp <= 0) {
-            // 如果玩家死了，handled 在 executeAttack 的 handlePlayerDeath 中
             return;
         }
 
@@ -304,13 +372,14 @@ export class BattleEngine {
 
         if (isVictory) {
             const goldEarned = this.enemy.goldReward || 0;
-            // 根據目前波數調整經驗值，使用對數緩增以避免高層數爆炸，同時讓高層給予較多經驗加速升等
-            const baseExp = this.enemy.exp || 10;
-            const wf = Math.max(0, Number(this.currentWave) || 0);
-            const expMultiplier = 1 + Math.log1p(wf) * 0.5; // 可調係數：0.5
-            const expEarned = Math.floor(baseExp * expMultiplier);
+            // 經驗值直接使用怪物模板中已計算好的 exp（含 scale 與 boss 加成）
+            const expEarned = this.enemy.exp || 10;
             this.player.gold += goldEarned;
             this.player.gainExp(expEarned);
+
+            // 戰鬥勝利後恢復 10% HP/SP（而非回滿）
+            this.player.recoverAfterBattle();
+
             this.ui.logCombat(`戰鬥結束！獲得 ${goldEarned} 金幣與 ${expEarned} EXP`, 'system');
 
             // 掉落機制
@@ -318,6 +387,10 @@ export class BattleEngine {
 
             this.ui.showBattleResult(true, this.enemy, this.gameInstance);
         } else {
+            if (!isFlee) {
+                // 戰敗死亡重生：HP/SP 回滿
+                this.player.respawn();
+            }
             this.ui.showBattleResult(false, this.enemy, this.gameInstance);
         }
     }
