@@ -200,81 +200,120 @@ export const MYSTERY_PREMIUM_ITEM = {
 ITEMS.mystery_premium = MYSTERY_PREMIUM_ITEM;
 
 // --- 怪物資料 ---
+// 所有 hp/atk/speed 為「基礎值」，實際數值由 computeMonsterScale(level) 動態縮放。
+// 勿直接把這裡的數值當戰鬥參考；請看 getMonsterTemplateForWave 的輸出。
 export const MONSTER_TYPES = [
-    // 等級 1-5：新手村
-    { name: '史萊姆', icon: '👾', hp: 50, atk: 10, speed: 4, exp: 20, gold: 5, dropRate: 0.15, drops: ['sword_01', 'armor_01', 'shield_01', 'shoes_01'] },
-    { name: '哥布林', icon: '👺', hp: 80, atk: 12, speed: 6, exp: 30, gold: 10, dropRate: 0.18, drops: ['dagger_01', 'helm_01', 'accessory_01'] },
-    { name: '蝙蝠', icon: '🦇', hp: 60, atk: 8, speed: 10, exp: 25, gold: 8, dropRate: 0.12, drops: ['dagger_01', 'shoes_01'] },
+    // [0-2] Z1 新手村 (1-20)
+    { name: '史萊姆',     icon: '👾', hp: 50, atk: 10, speed: 4,  dropRate: 0.15, drops: ['sword_01', 'armor_01', 'shield_01', 'shoes_01'] },
+    { name: '哥布林',     icon: '👺', hp: 65, atk: 14, speed: 6,  dropRate: 0.18, drops: ['dagger_01', 'helm_01', 'accessory_01'] },
+    { name: '蝙蝠',       icon: '🦇', hp: 45, atk: 12, speed: 14, dropRate: 0.12, drops: ['dagger_01', 'shoes_01'] },
 
-    // 等級 6-15：森林區域
-    { name: '狼', icon: '🐺', hp: 150, atk: 20, speed: 12, exp: 60, gold: 25, dropRate: 0.20, drops: ['sword_02', 'dagger_02', 'shoes_02'] },
-    { name: '魔術師', icon: '🧙', hp: 120, atk: 25, speed: 8, exp: 70, gold: 30, dropRate: 0.22, drops: ['staff_02', 'armor_02', 'accessory_02'] },
-    { name: '巨魔', icon: '👹', hp: 200, atk: 18, speed: 5, exp: 80, gold: 35, dropRate: 0.25, drops: ['sword_02', 'helm_02', 'shield_02'] },
+    // [3-5] Z2 黑暗森林 (21-40)
+    { name: '惡狼',       icon: '🐺', hp: 65, atk: 20, speed: 14, dropRate: 0.20, drops: ['sword_02', 'dagger_02', 'shoes_02'] },
+    { name: '森林魔法師', icon: '🧙', hp: 55, atk: 26, speed: 9,  dropRate: 0.22, drops: ['staff_02', 'armor_02', 'accessory_02'] },
+    { name: '食人樹妖',   icon: '🌳', hp: 82, atk: 18, speed: 4,  dropRate: 0.25, drops: ['sword_02', 'helm_02', 'shield_02'] },
 
-    // 等級 16-30：洞穴區域
-    { name: '骷髏兵', icon: '💀', hp: 300, atk: 35, speed: 10, exp: 120, gold: 50, dropRate: 0.25, drops: ['sword_03', 'armor_03', 'shield_03'] },
-    { name: '巫師', icon: '🧛', hp: 250, atk: 40, speed: 12, exp: 140, gold: 60, dropRate: 0.28, drops: ['staff_03', 'helm_03', 'accessory_03'] },
-    { name: '暗影盜賊', icon: '🥷', hp: 280, atk: 38, speed: 18, exp: 130, gold: 55, dropRate: 0.30, drops: ['dagger_03', 'shoes_03'] },
+    // [6-8] Z3 腐化洞穴 (41-60)
+    { name: '骷髏兵',     icon: '💀', hp: 72, atk: 22, speed: 10, dropRate: 0.25, drops: ['sword_03', 'armor_03', 'shield_03'] },
+    { name: '地穴巫師',   icon: '🧛', hp: 58, atk: 28, speed: 12, dropRate: 0.28, drops: ['staff_03', 'helm_03', 'accessory_03'] },
+    { name: '暗影盜賊',   icon: '🥷', hp: 62, atk: 25, speed: 20, dropRate: 0.30, drops: ['dagger_03', 'shoes_03'] },
 
-    // 等級 31-50：地下城
-    { name: '騎士', icon: '🏰', hp: 500, atk: 55, speed: 15, exp: 250, gold: 100, dropRate: 0.30, drops: ['sword_04', 'armor_04', 'shield_04'] },
-    { name: '女巫', icon: '🧙‍♀️', hp: 400, atk: 60, speed: 18, exp: 280, gold: 120, dropRate: 0.35, drops: ['staff_04', 'helm_04', 'accessory_04'] },
-    { name: '暗影刺客', icon: '🌑', hp: 450, atk: 58, speed: 25, exp: 260, gold: 110, dropRate: 0.32, drops: ['dagger_04', 'shoes_04'] },
+    // [9-11] Z4 黑暗地下城 (61-80)
+    { name: '鐵甲騎士',   icon: '🏰', hp: 85, atk: 26, speed: 12, dropRate: 0.30, drops: ['sword_04', 'armor_04', 'shield_04'] },
+    { name: '黑暗女巫',   icon: '🧙‍♀️', hp: 65, atk: 32, speed: 16, dropRate: 0.35, drops: ['staff_04', 'helm_04', 'accessory_04'] },
+    { name: '暗影刺客',   icon: '🌑', hp: 68, atk: 28, speed: 24, dropRate: 0.32, drops: ['dagger_04', 'shoes_04'] },
 
-    // 等級 51+：Boss 區域
-    { name: '龍', icon: '🐉', hp: 1000, atk: 80, speed: 20, exp: 500, gold: 300, dropRate: 0.50, drops: ['sword_05', 'armor_05', 'shield_05'] },
-    { name: '魔王', icon: '👿', hp: 1200, atk: 90, speed: 15, exp: 600, gold: 400, dropRate: 0.55, drops: ['staff_05', 'helm_05', 'accessory_05'] },
-    { name: '神話盜魁', icon: '🎭', hp: 900, atk: 85, speed: 30, exp: 550, gold: 350, dropRate: 0.50, drops: ['dagger_05', 'shoes_05'] },
+    // [12-14] Z5 熔岩深淵 (81-100)
+    { name: '熔岩巨人',   icon: '🌋', hp: 92, atk: 30, speed: 8,  dropRate: 0.40, drops: ['sword_05', 'armor_05', 'shield_05'] },
+    { name: '地獄犬',     icon: '🐕', hp: 72, atk: 34, speed: 20, dropRate: 0.42, drops: ['dagger_05', 'shoes_05'] },
+    { name: '炎焰術士',   icon: '🔥', hp: 65, atk: 38, speed: 16, dropRate: 0.45, drops: ['staff_05', 'accessory_05'] },
 
-    // 深淵區域 (51-70)
-    { name: '深淵巡行者', icon: '🌊', hp: 1400, atk: 95, speed: 22, exp: 700, gold: 400, dropRate: 0.40, drops: ['sword_04', 'accessory_04', 'shield_04'] },
-    { name: '腐化巨像', icon: '🗿', hp: 2200, atk: 110, speed: 8, exp: 900, gold: 500, dropRate: 0.45, drops: ['armor_04', 'helm_04'] },
-    { name: '噬魂狼王', icon: '🐺', hp: 1200, atk: 100, speed: 28, exp: 750, gold: 420, dropRate: 0.42, drops: ['dagger_04', 'shoes_04'] },
+    // [15-17] Z6 深淵邊境 (101-120)
+    { name: '深淵巡行者', icon: '🌊', hp: 80, atk: 32, speed: 18, dropRate: 0.40, drops: ['sword_05', 'armor_05', 'shield_05'] },
+    { name: '腐化巨像',   icon: '🗿', hp: 102, atk: 26, speed: 5, dropRate: 0.45, drops: ['helm_05', 'shield_05'] },
+    { name: '噬魂狼王',   icon: '🐾', hp: 70, atk: 36, speed: 26, dropRate: 0.42, drops: ['dagger_05', 'shoes_05'] },
 
-    // 虛空區域 (71-85)
-    { name: '虛無騎士', icon: '⚔️', hp: 3000, atk: 130, speed: 25, exp: 1200, gold: 800, dropRate: 0.50, drops: ['sword_05', 'armor_05'] },
-    { name: '寂滅女巫', icon: '🪄', hp: 2600, atk: 140, speed: 22, exp: 1300, gold: 850, dropRate: 0.55, drops: ['staff_05', 'accessory_05'] },
+    // [18-19] Z7 虛空裂縫 (121-140) — 第三個怪物見 index 23
+    { name: '虛無騎士',   icon: '⚔️', hp: 88, atk: 36, speed: 18, dropRate: 0.50, drops: ['sword_05', 'armor_05'] },
+    { name: '寂滅女巫',   icon: '🪄', hp: 75, atk: 44, speed: 16, dropRate: 0.52, drops: ['staff_05', 'accessory_05'] },
 
-    // 天界 / 終章區域 (86+)
-    { name: '天界守衛', icon: '👼', hp: 5000, atk: 160, speed: 30, exp: 2000, gold: 1500, dropRate: 0.60, drops: ['helm_05', 'accessory_05'] },
-    { name: '終焉龍王', icon: '🐲', hp: 8000, atk: 220, speed: 20, exp: 5000, gold: 3000, dropRate: 0.70, drops: ['sword_05', 'armor_05', 'shield_05'] },
-    { name: '虛空終結者', icon: '🌌', hp: 6500, atk: 180, speed: 28, exp: 3200, gold: 1800, dropRate: 0.65, drops: ['dagger_05', 'staff_05'] }
+    // [20-22] Z8 天界前庭 (141-160)
+    { name: '天界守衛',   icon: '👼', hp: 86, atk: 38, speed: 20, dropRate: 0.55, drops: ['helm_05', 'accessory_05'] },
+    { name: '天界聖騎',   icon: '🛡️', hp: 96, atk: 36, speed: 16, dropRate: 0.58, drops: ['sword_05', 'armor_05', 'shield_05'] },
+    { name: '天界煉金師', icon: '✨', hp: 78, atk: 46, speed: 18, dropRate: 0.55, drops: ['staff_05', 'helm_05'] },
+
+    // [23] Z7 虛空裂縫 補充第三隻
+    { name: '裂縫侵蝕者', icon: '🌀', hp: 78, atk: 38, speed: 24, dropRate: 0.50, drops: ['dagger_05', 'shoes_05'] },
+
+    // [24-26] Z9 混沌之域 (161-180)
+    { name: '混沌巨獸',   icon: '🌪️', hp: 96, atk: 38, speed: 12, dropRate: 0.55, drops: ['sword_05', 'armor_05', 'shield_05'] },
+    { name: '混沌術士',   icon: '💜', hp: 78, atk: 50, speed: 16, dropRate: 0.58, drops: ['staff_05', 'helm_05', 'accessory_05'] },
+    { name: '混沌侵蝕者', icon: '🔮', hp: 84, atk: 44, speed: 22, dropRate: 0.56, drops: ['dagger_05', 'shoes_05'] },
+
+    // [27-29] Z10 神魔戰場 (181-200)
+    { name: '墮落天使',   icon: '😈', hp: 88, atk: 46, speed: 22, dropRate: 0.58, drops: ['sword_05', 'accessory_05'] },
+    { name: '破滅騎士',   icon: '💔', hp: 102, atk: 42, speed: 15, dropRate: 0.60, drops: ['armor_05', 'shield_05', 'helm_05'] },
+    { name: '命運女神',   icon: '⚖️', hp: 80, atk: 52, speed: 19, dropRate: 0.60, drops: ['staff_05', 'dagger_05'] },
+
+    // [30-32] Z11 星界之境 (201-220)
+    { name: '星際漫游者', icon: '🌠', hp: 85, atk: 48, speed: 24, dropRate: 0.60, drops: ['sword_05', 'shoes_05'] },
+    { name: '黑洞吞噬者', icon: '🕳️', hp: 116, atk: 44, speed: 8,  dropRate: 0.62, drops: ['armor_05', 'shield_05', 'helm_05'] },
+    { name: '星塵精靈',   icon: '💫', hp: 70, atk: 56, speed: 30, dropRate: 0.62, drops: ['dagger_05', 'staff_05', 'accessory_05'] },
+
+    // [33-35] Z12 時間廢墟 (221-240)
+    { name: '時間守衛者', icon: '⏰', hp: 92, atk: 52, speed: 16, dropRate: 0.62, drops: ['sword_05', 'armor_05', 'shield_05'] },
+    { name: '歷史幽靈',   icon: '👻', hp: 78, atk: 62, speed: 22, dropRate: 0.65, drops: ['staff_05', 'helm_05'] },
+    { name: '命運操控者', icon: '🎭', hp: 86, atk: 58, speed: 15, dropRate: 0.63, drops: ['dagger_05', 'shoes_05', 'accessory_05'] },
+
+    // [36-38] Z13 永恆虛無 (241-260)
+    { name: '永恆傀儡',   icon: '🤖', hp: 102, atk: 55, speed: 12, dropRate: 0.65, drops: ['armor_05', 'shield_05', 'helm_05'] },
+    { name: '虛無傳道士', icon: '🌑', hp: 82, atk: 66, speed: 18, dropRate: 0.68, drops: ['staff_05', 'accessory_05'] },
+    { name: '滅世先驅',   icon: '☠️', hp: 90, atk: 60, speed: 24, dropRate: 0.66, drops: ['sword_05', 'dagger_05', 'shoes_05'] },
+
+    // [39-41] Z14 創世神域 (261-280)
+    { name: '創世神衛',   icon: '🔱', hp: 106, atk: 62, speed: 16, dropRate: 0.68, drops: ['armor_05', 'shield_05', 'helm_05'] },
+    { name: '神域法師',   icon: '⚡', hp: 85, atk: 74, speed: 18, dropRate: 0.70, drops: ['staff_05', 'accessory_05'] },
+    { name: '創世龍靈',   icon: '🐉', hp: 96, atk: 68, speed: 20, dropRate: 0.70, drops: ['sword_05', 'dagger_05', 'shoes_05'] },
+
+    // [42-44] Z15 終焉之地 (281-300)
+    { name: '終焉先鋒',   icon: '☄️',  hp: 102, atk: 70, speed: 22, dropRate: 0.72, drops: ['sword_05', 'armor_05', 'dagger_05'] },
+    { name: '末日審判者', icon: '🌌', hp: 122, atk: 68, speed: 14, dropRate: 0.75, drops: ['shield_05', 'helm_05', 'accessory_05'] },
+    { name: '宇宙終結者', icon: '💥', hp: 112, atk: 76, speed: 18, dropRate: 0.75, drops: ['staff_05', 'shoes_05', 'accessory_05'] },
 ];
 
-// 提供依照波數（wave, 0-based）挑選怪物的工具函式
-// 地圖/區域定義 (可擴充)
+// 地圖/區域定義：15 大區 × 20 層 = 300 層，對齊成長公式（每 20 層一大區）
+// Boss 每 10 層出現一次：每區 Mid-Boss(+9) + Area-Boss(+19)
 export const MAPS = [
-    { key: 'village', name: '新手村', min: 1, max: 5, indices: [0,1,2] },
-    { key: 'forest', name: '森林區域', min: 6, max: 15, indices: [3,4,5] },
-    { key: 'cave', name: '洞穴區域', min: 16, max: 30, indices: [6,7,8] },
-    { key: 'dungeon', name: '地下城', min: 31, max: 50, indices: [9,10,11] },
-    { key: 'abyss', name: '深淵', min: 51, max: 70, indices: [12,13,14] },
-    { key: 'void', name: '虛空', min: 71, max: 85, indices: [15,16,17] },
-    { key: 'heaven', name: '天界', min: 86, max: 100, indices: [18,19] },
-    { key: 'village_higher', name: '高級新手村', min: 101, max: 105, indices: [0,1,2] },
-    { key: 'forest_higher', name: '高級森林', min: 106, max: 115, indices: [3,4,5] },
-    { key: 'cave_higher', name: '高級洞穴', min: 116, max: 130, indices: [6,7,8] },
-    { key: 'dungeon_higher', name: '高級地下城', min: 131, max: 150, indices: [9,10,11] },
-    { key: 'abyss_higher', name: '深淵進階', min: 151, max: 170, indices: [12,13,14] },
-    { key: 'void_higher', name: '虛空深處', min: 171, max: 185, indices: [15,16,17] },
-    { key: 'heaven_higher', name: '天界進階', min: 186, max: 200, indices: [18,19] },
-    // 超過 200 則使用最高階區域作為預設（保護性回退）
-    { key: 'cosmic', name: '宇宙之境', min: 201, max: Infinity, indices: [20,21,22] }
+    { key: 'village',   name: '新手村',   min:   1, max:  20, indices: [0,1,2]     },
+    { key: 'darkforest',name: '黑暗森林', min:  21, max:  40, indices: [3,4,5]     },
+    { key: 'cave',      name: '腐化洞穴', min:  41, max:  60, indices: [6,7,8]     },
+    { key: 'dungeon',   name: '黑暗地下城',min: 61, max:  80, indices: [9,10,11]   },
+    { key: 'lava',      name: '熔岩深淵', min:  81, max: 100, indices: [12,13,14]  },
+    { key: 'abyss',     name: '深淵邊境', min: 101, max: 120, indices: [15,16,17]  },
+    { key: 'voidrift',  name: '虛空裂縫', min: 121, max: 140, indices: [18,19,23]  },
+    { key: 'heaven',    name: '天界前庭', min: 141, max: 160, indices: [20,21,22]  },
+    { key: 'chaos',     name: '混沌之域', min: 161, max: 180, indices: [24,25,26]  },
+    { key: 'divbattle', name: '神魔戰場', min: 181, max: 200, indices: [27,28,29]  },
+    { key: 'stellar',   name: '星界之境', min: 201, max: 220, indices: [30,31,32]  },
+    { key: 'timeruins', name: '時間廢墟', min: 221, max: 240, indices: [33,34,35]  },
+    { key: 'eternalvoid',name:'永恆虛無', min: 241, max: 260, indices: [36,37,38]  },
+    { key: 'creation',  name: '創世神域', min: 261, max: 280, indices: [39,40,41]  },
+    { key: 'endofdays', name: '終焉之地', min: 281, max: 300, indices: [42,43,44]  },
+    // 301+ 保護性回退
+    { key: 'beyond',    name: '宇宙彼端', min: 301, max: Infinity, indices: [42,43,44] }
 ];
 
 /**
- * 階梯式怪物成長公式
- * regionMult = 1.5^(floor((level-1)/20))   — 20層一大區
- * stepMult   = 1 + floor(((level-1)%20)/5)*0.2 — 5層一小階
- * linearMult = 1 + (level-1)*0.05           — 線性微調
- * scale = regionMult * stepMult * linearMult
+ * 連續指數怪物成長公式（v2）
+ * expGrowth  = 1.35^((lv-1)/20) — 每 20 層約 ×1.35，連續無跳躍
+ * linearMult = 1 + (lv-1)*0.03  — 線性微調
+ * scale = expGrowth * linearMult
  */
 export function computeMonsterScale(level) {
     const lv = Math.max(1, level);
-    const regionMult = Math.pow(1.5, Math.floor((lv - 1) / 20));
-    const stepMult = 1 + Math.floor(((lv - 1) % 20) / 5) * 0.2;
-    const linearMult = 1 + (lv - 1) * 0.05;
-    return regionMult * stepMult * linearMult;
+    const expGrowth  = Math.pow(1.35, (lv - 1) / 20);
+    const linearMult = 1 + (lv - 1) * 0.03;
+    return expGrowth * linearMult;
 }
 
 export function getMonsterTemplateForWave(wave) {
