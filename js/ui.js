@@ -45,6 +45,7 @@ export class UIManager {
             <div class="stat-row"><span class="stat-label">LUK</span><span class="stat-value">${player.luk}</span></div>
             <div class="stat-row"><span class="stat-label">🔷 可分配點數</span><span class="stat-value">${player.statPointsAvailable} <button class="btn btn-primary" id="btn-open-allocate" ${player.statPointsAvailable <= 0 ? 'disabled' : ''}>分配點數</button></span></div>
             <div class="stat-row"><span class="stat-label">❤️ HP</span><span class="stat-value">${Math.ceil(player.hp)}/${player.effectiveMaxHp}</span></div>
+            <div class="stat-row"><span class="stat-label">💧 SP</span><span class="stat-value">${Math.ceil(player.sp || 0)}/${player.effectiveMaxSp}</span></div>
             <div class="stat-row"><span class="stat-label">⚔️ ATK</span><span class="stat-value">${player.totalAtk}</span></div>
             <div class="stat-row"><span class="stat-label">🔮 MATK</span><span class="stat-value">${player.effectiveMatk}</span></div>
             <div class="stat-row"><span class="stat-label">🛡️ DEF</span><span class="stat-value">${player.totalDef}</span></div>
@@ -458,12 +459,31 @@ export class UIManager {
     updateBattleScene(player, enemy) {
         if (this.playerHpBar) this.playerHpBar.style.width = `${(player.hp / player.effectiveMaxHp) * 100}%`;
         if (this.playerHpText) this.playerHpText.textContent = `${Math.ceil(player.hp)}/${player.effectiveMaxHp}`;
+        // SP 顯示
+        const spText = document.getElementById('player-sp-text');
+        if (spText) spText.textContent = `${Math.ceil(player.sp || 0)}/${player.effectiveMaxSp}`;
+        const spBar = document.getElementById('player-sp-bar');
+        if (spBar) spBar.style.width = `${((player.sp || 0) / player.effectiveMaxSp) * 100}%`;
         if (this.enemyHpBar) this.enemyHpBar.style.width = `${(enemy.hp / enemy.maxHp) * 100}%`;
         if (this.enemyHpText) this.enemyHpText.textContent = `${Math.ceil(enemy.hp)}/${enemy.maxHp}`;
         document.getElementById('player-name').textContent = player.name;
         document.getElementById('player-icon').textContent = player.icon;
-        document.getElementById('enemy-name').textContent = enemy.name;
+        // 顯示怪物名稱（含 Boss 標記與詞綴）
+        const enemyNameEl = document.getElementById('enemy-name');
+        if (enemyNameEl) {
+            let nameText = enemy.name;
+            if (enemy.level) nameText = `Lv.${enemy.level} ${nameText}`;
+            if (enemy.isBoss) nameText = `🔥BOSS🔥 ${nameText}`;
+            enemyNameEl.textContent = nameText;
+        }
         document.getElementById('enemy-icon').textContent = enemy.icon;
+
+        // SP 不足時自動禁用技能按鈕
+        const skillBtn = document.getElementById('btn-action-skill');
+        if (skillBtn) {
+            const spCost = 10;
+            skillBtn.disabled = (player.sp || 0) < spCost;
+        }
     }
 
     setBattleButtonsEnabled(enabled) {

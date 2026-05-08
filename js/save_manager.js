@@ -40,6 +40,9 @@ export class SaveManager {
             dex: player.dex,
             luk: player.luk,
             statPointsAvailable: player.statPointsAvailable,
+            // SP 系統
+            sp: player.sp,
+            maxSp: player.maxSp,
             // 將任何額外 meta 加入儲存物件（例如 wave）
             ...meta
         };
